@@ -25,6 +25,8 @@ The initial target is still-image sprite generation. Sprite sheets, animation, p
 
 ## Phase 0 — Project Bootstrap
 
+Status: completed
+
 ### Goal
 
 Create a runnable Nuxt + TypeScript project with the basic local development foundation.
@@ -60,6 +62,8 @@ pnpm typecheck
 * Missing `OPENROUTER_API_KEY` is reported clearly when generation is attempted, not during unrelated browsing.
 
 ## Phase 1 — SQLite + Drizzle
+
+Status: pending
 
 ### Goal
 
@@ -98,6 +102,8 @@ pnpm db:studio
 
 ## Phase 2 — Local Storage Service
 
+Status: pending
+
 ### Goal
 
 Create predictable local filesystem storage for uploads and generated images.
@@ -128,6 +134,8 @@ data/storage/
 * API never accepts arbitrary filesystem paths from the client.
 
 ## Phase 3 — Upload Flow
+
+Status: pending
 
 ### Goal
 
@@ -163,6 +171,8 @@ image/webp
 
 ## Phase 4 — Style Presets + Prompt Builder
 
+Status: pending
+
 ### Goal
 
 Create deterministic prompt construction before touching OpenRouter generation.
@@ -192,6 +202,8 @@ Create deterministic prompt construction before touching OpenRouter generation.
 * Invalid style preset IDs are rejected.
 
 ## Phase 5 — OpenRouter Service
+
+Status: pending
 
 ### Goal
 
@@ -233,6 +245,8 @@ OPENROUTER_DEFAULT_MODEL=google/gemini-3.1-flash-image-preview
 
 ## Phase 6 — Sharp Post-Processing
 
+Status: pending
+
 ### Goal
 
 Convert generated model output into real game-asset PNG files.
@@ -269,6 +283,8 @@ Convert generated model output into real game-asset PNG files.
 * Preview is large enough to inspect in UI.
 
 ## Phase 7 — Generation Job Endpoint
+
+Status: pending
 
 ### Goal
 
@@ -314,6 +330,8 @@ type CreateGenerationJobInput = {
 
 ## Phase 8 — Main Generation UI
 
+Status: pending
+
 ### Goal
 
 Make the app usable from the browser.
@@ -340,6 +358,8 @@ Make the app usable from the browser.
 * Errors are visible and useful.
 
 ## Phase 9 — Image Serving + Downloads
+
+Status: pending
 
 ### Goal
 
@@ -386,6 +406,8 @@ metadata.json
 
 ## Phase 10 — Job History
 
+Status: pending
+
 ### Goal
 
 Allow users to view previous local generations.
@@ -411,6 +433,8 @@ Allow users to view previous local generations.
 
 ## Phase 11 — Settings Page
 
+Status: pending
+
 ### Goal
 
 Expose simple local diagnostics and defaults.
@@ -433,6 +457,8 @@ Expose simple local diagnostics and defaults.
 * Settings page helps diagnose common local setup issues.
 
 ## Phase 12 — Basic Tests
+
+Status: pending
 
 ### Goal
 
@@ -457,6 +483,8 @@ Add tests for:
 * Tests do not depend on external network access.
 
 ## Phase 13 — README Polish
+
+Status: pending
 
 ### Goal
 
@@ -574,4 +602,3 @@ MVP is done when this works:
 13. Download old outputs.
 
 Anything beyond that is post-MVP.
-
