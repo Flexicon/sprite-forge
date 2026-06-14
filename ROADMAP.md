@@ -135,7 +135,7 @@ data/storage/
 
 ## Phase 3 — Upload Flow
 
-Status: pending
+Status: completed
 
 ### Goal
 

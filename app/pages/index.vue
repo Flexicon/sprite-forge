@@ -7,7 +7,7 @@
           <h1 class="mt-3 text-4xl font-black tracking-tight sm:text-6xl">Sprite Forge</h1>
         </div>
         <div class="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-300">
-          Phase 3 Upload Flow
+          Ready for Phase 4
         </div>
       </nav>
 
@@ -20,13 +20,17 @@
 
           <div class="mt-8 grid gap-4 sm:grid-cols-2">
             <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-950/70 p-5">
-              <p class="font-semibold text-slate-100">Current milestone</p>
-              <p class="mt-2 text-sm text-slate-400">Upload source images, validate file type and size, extract image metadata, and persist upload records.</p>
+              <p class="font-semibold text-slate-100">Completed milestone</p>
+              <p class="mt-2 text-sm text-slate-400">Upload source images, validate file type and size, extract image metadata, show previews, and persist upload records.</p>
             </div>
             <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
-              <p class="font-semibold text-slate-100">Next milestone</p>
-              <p class="mt-2 text-sm text-slate-400">Style presets, deterministic prompt building, variant directions, and generation input validation.</p>
+              <p class="font-semibold text-slate-100">Phase 4 focus</p>
+              <p class="mt-2 text-sm text-slate-400">Add style presets, deterministic prompt building, variant directions, and generation input validation.</p>
             </div>
+          </div>
+
+          <div class="mt-6">
+            <SourceUploader @uploaded="selectedUploadId = $event.id" />
           </div>
         </section>
 
@@ -38,8 +42,17 @@
             <li class="rounded-xl bg-slate-900 p-3">Sharp post-processing into exact target-size PNG sprites.</li>
             <li class="rounded-xl bg-slate-900 p-3">SQLite metadata with filesystem image storage.</li>
           </ul>
+
+          <div class="mt-5 rounded-2xl border border-cyan-900/70 bg-cyan-950/30 p-4 text-sm text-cyan-100">
+            <p class="font-semibold">Selected upload</p>
+            <p class="mt-2 break-all text-cyan-200/80">{{ selectedUploadId || 'None yet' }}</p>
+          </div>
         </aside>
       </div>
     </section>
   </main>
 </template>
+
+<script setup lang="ts">
+const selectedUploadId = ref<string | null>(null)
+</script>

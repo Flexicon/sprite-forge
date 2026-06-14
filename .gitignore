@@ -2,6 +2,7 @@
 .output
 .data
 .nitro
+.playwright-mcp/
 node_modules
 dist
 
