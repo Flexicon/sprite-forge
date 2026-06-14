@@ -1,0 +1,25 @@
+export default defineNuxtConfig({
+  compatibilityDate: '2026-06-14',
+  devtools: { enabled: true },
+  devServer: {
+    host: '0.0.0.0',
+    port: 4179,
+  },
+  modules: ['@nuxt/eslint', '@nuxtjs/tailwindcss'],
+  css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
+    databaseUrl: process.env.DATABASE_URL || 'file:./data/sprite-forge.sqlite',
+    storageDir: process.env.STORAGE_DIR || './data/storage',
+    openrouterDefaultModel: process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemini-2.5-flash-image',
+    openrouterSiteUrl: process.env.OPENROUTER_SITE_URL || 'http://localhost:4179',
+    openrouterAppName: process.env.OPENROUTER_APP_NAME || 'Sprite Forge',
+    public: {
+      appName: 'Sprite Forge'
+    }
+  },
+  typescript: {
+    strict: true,
+    typeCheck: true
+  },
+})
