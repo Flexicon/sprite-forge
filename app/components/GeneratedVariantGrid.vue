@@ -11,7 +11,8 @@ type Variant = {
 
 const props = defineProps<{
   variants: Variant[]
-  jobId: string
+  jobId?: string
+  isGenerating?: boolean
 }>()
 
 function getPreviewUrl(variantId: string): string {
@@ -38,9 +39,16 @@ const failedVariants = computed(() =>
 <template>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
-      <h3 class="text-xl font-bold text-slate-100">Generated variants</h3>
+      <div>
+        <h3 class="text-xl font-bold text-slate-100">
+          {{ isGenerating ? 'Generating variants' : 'Generated variants' }}
+        </h3>
+        <p v-if="isGenerating" class="mt-1 text-sm text-slate-400" aria-live="polite">
+          Preparing {{ variants.length }} sprite slots. Results will appear here when generation finishes.
+        </p>
+      </div>
       <a
-        v-if="completedVariants.length > 0"
+        v-if="jobId && completedVariants.length > 0"
         :href="getZipUrl(jobId)"
         class="rounded-full bg-cyan-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-200"
       >
@@ -65,8 +73,14 @@ const failedVariants = computed(() =>
             <p class="font-semibold">Failed</p>
             <p class="mt-1 text-xs text-red-400/80">{{ variant.errorMessage || 'Unknown error' }}</p>
           </div>
-          <div v-else class="text-center text-sm text-slate-500">
-            Generating variant {{ variant.variantIndex }}...
+          <div v-else class="w-full space-y-4 text-center text-sm text-slate-500">
+            <div class="mx-auto grid h-28 w-28 animate-pulse place-items-center rounded-lg border border-cyan-900/50 bg-gradient-to-br from-slate-800 via-slate-900 to-cyan-950/40">
+              <div class="h-12 w-12 rounded-md border border-cyan-500/30 bg-cyan-300/10 shadow-lg shadow-cyan-500/10" />
+            </div>
+            <div>
+              <p class="font-semibold text-cyan-200">Generating variant {{ variant.variantIndex }}...</p>
+              <p class="mt-1 text-xs text-slate-500">Waiting for image output</p>
+            </div>
           </div>
         </div>
 

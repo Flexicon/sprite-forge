@@ -8,7 +8,7 @@ Sprite Forge
 
 Build a self-hosted local web app for transforming uploaded 2D game sprite images into new sprite variants in different visual styles, especially pixel art.
 
-The app should let a user upload a source image, describe the desired style or transformation, choose simple generation settings, generate 4-6 sprite candidates using OpenRouter image models, preview the results, and export the generated sprites as PNG files.
+The app should let a user upload a source image, describe the desired style or transformation, choose simple generation settings, generate 1-3 sprite candidates using OpenRouter image models, preview the results, and export the generated sprites as PNG files.
 
 This is a local-first tool. Do not add authentication, billing, team management, cloud storage, OAuth, multi-tenant behavior, or hosted SaaS assumptions.
 
@@ -20,7 +20,7 @@ The app must support:
 * Entering a freeform prompt.
 * Selecting a style preset.
 * Selecting target sprite dimensions.
-* Selecting number of variants: 4, 5, or 6.
+* Selecting number of variants: 1, 2, or 3. The default should be 2.
 * Generating sprite variants through OpenRouter.
 * Processing generated images with Sharp.
 * Saving generation jobs and outputs in SQLite.
@@ -100,7 +100,7 @@ Do not ask the model to produce a contact sheet or grid of sprites.
 
 Reason: the app needs clean individual PNG outputs, and splitting generated grids is unreliable.
 
-For a 4-variant generation job, perform 4 separate image-generation requests. The same applies to 5 or 6 variants.
+For a 2-variant generation job, perform 2 separate image-generation requests. The same applies to 1 or 3 variants.
 
 Each variant prompt should include a small variation directive so the candidates are distinct while preserving the source subject.
 
@@ -110,9 +110,6 @@ Example variant directives:
 Variant 1: most faithful to the original silhouette.
 Variant 2: slightly more stylized and expressive.
 Variant 3: stronger game-ready pixel-art interpretation.
-Variant 4: alternate palette while preserving the same subject.
-Variant 5: more dramatic lighting and contrast.
-Variant 6: cleaner simplified low-detail sprite.
 ```
 
 ## Prompt Template
@@ -139,7 +136,8 @@ Variant direction:
 Hard constraints:
 - Preserve the main subject identity and silhouette from the source image.
 - Create one centered sprite, not a scene and not a full illustration.
-- Use a transparent background if possible. If transparency is not possible, use a flat plain background with strong subject separation.
+- If transparent background mode is selected, remove the source image background completely and output the sprite on a real transparent alpha channel with no matte, checkerboard, canvas, shadow, glow, or placeholder background pixels.
+- If plain background mode is selected, use a flat plain background with strong subject separation.
 - No text.
 - No watermark.
 - No border.
@@ -242,8 +240,8 @@ data/
       {uploadId}.png
     jobs/
       {jobId}/
-        source.png
         variants/
+          {variantId}.raw.png
           {variantId}.png
           {variantId}.preview.png
         exports/
@@ -289,9 +287,6 @@ Fields:
 * variant_count
 * background_mode
 * created_at
-* started_at
-* completed_at
-* failed_at
 * error_message
 
 Status values:
@@ -319,13 +314,9 @@ Fields:
 * raw_image_path
 * final_image_path
 * preview_image_path
-* width
-* height
 * openrouter_response_json
 * error_message
 * created_at
-* completed_at
-* failed_at
 
 Status values:
 
@@ -342,6 +333,7 @@ Implement these Nitro server routes:
 ```txt
 POST   /api/uploads
 GET    /api/uploads/:id
+GET    /api/uploads/:id/image.png
 
 POST   /api/generation-jobs
 GET    /api/generation-jobs
@@ -385,7 +377,6 @@ The home page should include:
 * Style preset selector.
 * Output size selector.
 * Variant count selector.
-* Model display.
 * Generate button.
 * Generated candidate grid.
 * Per-candidate PNG download button.
@@ -431,7 +422,7 @@ Recommended source dimensions:
 Generation constraints:
 
 ```txt
-variant_count must be 4, 5, or 6
+variant_count must be 1, 2, or 3; default UI selection is 2
 target_width must be one of supported sizes
 target_height must be one of supported sizes
 prompt max length: 2000 chars
@@ -527,15 +518,12 @@ app/
     SpriteSizeSelect.vue
     VariantCountSelect.vue
     GeneratedVariantGrid.vue
-    JobStatusBadge.vue
-  composables/
-    useGenerationJobs.ts
-    useUploads.ts
 
 server/
   api/
     uploads.post.ts
     uploads/[id].get.ts
+    uploads/[id]/image.png.get.ts
     generation-jobs/index.get.ts
     generation-jobs/index.post.ts
     generation-jobs/[id].get.ts
@@ -583,7 +571,7 @@ The MVP is complete when:
 2. The only required secret is `OPENROUTER_API_KEY`.
 3. A user can upload a sprite image.
 4. A user can enter a prompt and select a style preset.
-5. A user can generate 4-6 variants.
+5. A user can generate 1-3 variants, with 2 selected by default.
 6. Generated variants are visible in the UI.
 7. Final PNG files are saved locally.
 8. Each final PNG has the selected target dimensions.

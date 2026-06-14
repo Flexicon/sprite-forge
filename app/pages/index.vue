@@ -88,12 +88,20 @@
           <div class="mt-6 flex items-center gap-4">
             <button
               type="button"
-              class="rounded-full bg-cyan-300 px-6 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60"
+              class="inline-flex items-center gap-2 rounded-full bg-cyan-300 px-6 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="!canGenerate || isGenerating"
               @click="generate"
             >
+              <span
+                v-if="isGenerating"
+                class="h-4 w-4 animate-spin rounded-full border-2 border-slate-950/30 border-t-slate-950"
+                aria-hidden="true"
+              />
               {{ isGenerating ? 'Generating...' : 'Generate variants' }}
             </button>
+            <p v-if="isGenerating" class="text-xs text-cyan-200" aria-live="polite">
+              Generating {{ variantCount }} sprites. This can take a minute.
+            </p>
             <p v-if="!settings?.apiKeyConfigured" class="text-xs text-amber-300">
               OpenRouter API key is not configured.
             </p>
@@ -110,11 +118,14 @@
           </p>
         </section>
 
-        <GeneratedVariantGrid
-          v-if="currentJob"
-          :variants="currentJob.variants"
-          :job-id="currentJob.id"
-        />
+        <div ref="resultsSection">
+          <GeneratedVariantGrid
+            v-if="currentJob || isGenerating"
+            :variants="currentJob?.variants ?? pendingVariants"
+            :job-id="currentJob?.id"
+            :is-generating="isGenerating"
+          />
+        </div>
 
         <div v-if="recentJobs.length > 0" class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6">
           <h2 class="text-lg font-bold text-slate-100">Recent jobs</h2>
@@ -158,6 +169,19 @@ const isGenerating = ref(false)
 const errorMessage = ref<string | null>(null)
 const currentJob = ref<GenerationJob | null>(null)
 const recentJobs = ref<GenerationJob[]>([])
+const resultsSection = ref<HTMLElement | null>(null)
+
+const pendingVariants = computed(() =>
+  Array.from({ length: variantCount.value }, (_, index) => ({
+    id: `pending-${index + 1}`,
+    status: 'running',
+    variantIndex: index + 1,
+    variantDirection: getPendingVariantDirection(index + 1),
+    finalImagePath: null,
+    previewImagePath: null,
+    errorMessage: null,
+  })),
+)
 
 const canGenerate = computed(() => {
   return uploadId.value && userPrompt.value.trim().length > 0 && settings.value?.apiKeyConfigured
@@ -166,6 +190,19 @@ const canGenerate = computed(() => {
 function onUpload(upload: UploadRecord) {
   uploadId.value = upload.id
   errorMessage.value = null
+}
+
+function getPendingVariantDirection(index: number): string {
+  const directions = [
+    'Most faithful to the original silhouette.',
+    'Slightly more stylized and expressive.',
+    'Stronger game-ready pixel-art interpretation.',
+    'Alternate palette while preserving the subject.',
+    'More dramatic lighting and contrast.',
+    'Cleaner simplified low-detail sprite.',
+  ]
+
+  return directions[index - 1] ?? 'Sprite variation in progress.'
 }
 
 async function loadRecentJobs() {
@@ -187,6 +224,8 @@ async function generate() {
   isGenerating.value = true
   errorMessage.value = null
   currentJob.value = null
+  await nextTick()
+  resultsSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 
   try {
     const response = await $fetch<{ job: GenerationJob }>('/api/generation-jobs', {

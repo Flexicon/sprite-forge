@@ -4,7 +4,7 @@
 
 ## Product Goal
 
-Create a self-hosted Nuxt app that converts uploaded 2D sprite images into 4-6 generated sprite variants using OpenRouter image models, then post-processes the results into clean PNG assets suitable for game development.
+Create a self-hosted Nuxt app that converts uploaded 2D sprite images into 1-3 generated sprite variants using OpenRouter image models, then post-processes the results into clean PNG assets suitable for game development.
 
 The initial target is still-image sprite generation. Sprite sheets, animation, palette tools, and batch workflows come later.
 
@@ -171,7 +171,7 @@ image/webp
 
 ## Phase 4 — Style Presets + Prompt Builder
 
-Status: pending
+Status: completed
 
 ### Goal
 
@@ -203,7 +203,7 @@ Create deterministic prompt construction before touching OpenRouter generation.
 
 ## Phase 5 — OpenRouter Service
 
-Status: pending
+Status: completed
 
 ### Goal
 
@@ -229,10 +229,10 @@ google/gemini-2.5-flash-image
 
 ### Optional Model Override
 
-Support this through env:
+Support model override through env:
 
 ```env
-OPENROUTER_DEFAULT_MODEL=google/gemini-3.1-flash-image-preview
+OPENROUTER_DEFAULT_MODEL=google/gemini-2.5-flash-image
 ```
 
 ### Acceptance Criteria
@@ -245,7 +245,7 @@ OPENROUTER_DEFAULT_MODEL=google/gemini-3.1-flash-image-preview
 
 ## Phase 6 — Sharp Post-Processing
 
-Status: pending
+Status: completed
 
 ### Goal
 
@@ -284,11 +284,11 @@ Convert generated model output into real game-asset PNG files.
 
 ## Phase 7 — Generation Job Endpoint
 
-Status: pending
+Status: completed
 
 ### Goal
 
-Generate 4-6 sprite variants from one uploaded image.
+Generate 1-3 sprite variants from one uploaded image, defaulting to 2 variants in the UI.
 
 ### Tasks
 
@@ -314,7 +314,7 @@ type CreateGenerationJobInput = {
   stylePresetId: string;
   targetWidth: number;
   targetHeight: number;
-  variantCount: 4 | 5 | 6;
+  variantCount: 1 | 2 | 3;
   backgroundMode: "transparent" | "plain";
 };
 ```
@@ -330,7 +330,7 @@ type CreateGenerationJobInput = {
 
 ## Phase 8 — Main Generation UI
 
-Status: pending
+Status: completed
 
 ### Goal
 
@@ -349,7 +349,7 @@ Make the app usable from the browser.
 * Add error display.
 * Add generated variants grid.
 * Add per-variant download button.
-* Add link to job detail page.
+* Add access to job detail pages through recent jobs/history navigation.
 
 ### Acceptance Criteria
 
@@ -359,7 +359,7 @@ Make the app usable from the browser.
 
 ## Phase 9 — Image Serving + Downloads
 
-Status: pending
+Status: completed
 
 ### Goal
 
@@ -392,7 +392,6 @@ ZIP contents:
 variant-1.png
 variant-2.png
 variant-3.png
-variant-4.png
 metadata.json
 ```
 
@@ -406,7 +405,7 @@ metadata.json
 
 ## Phase 10 — Job History
 
-Status: pending
+Status: completed
 
 ### Goal
 
@@ -433,7 +432,7 @@ Allow users to view previous local generations.
 
 ## Phase 11 — Settings Page
 
-Status: pending
+Status: completed
 
 ### Goal
 
@@ -458,7 +457,7 @@ Expose simple local diagnostics and defaults.
 
 ## Phase 12 — Basic Tests
 
-Status: pending
+Status: completed
 
 ### Goal
 
@@ -592,7 +591,7 @@ MVP is done when this works:
 3. Enter prompt.
 4. Choose style preset.
 5. Choose target size.
-6. Choose 4-6 variants.
+6. Choose 1-3 variants, with 2 selected by default.
 7. Generate through OpenRouter.
 8. See generated previews.
 9. Download individual PNG.

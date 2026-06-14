@@ -43,6 +43,8 @@ const VARIANT_DIRECTIONS = [
   'Variant 3: stronger game-ready pixel-art interpretation.',
 ] as const
 
+type VariantCount = 1 | 2 | 3
+
 export const createGenerationJobSchema = z.object({
   uploadId: z.string().uuid(),
   userPrompt: z.string().min(1).max(2000),
@@ -62,7 +64,7 @@ export function getStylePresetById(id: string): StylePreset | undefined {
   return STYLE_PRESETS.find(preset => preset.id === id)
 }
 
-export function getVariantDirections(count: 1 | 2 | 3): string[] {
+export function getVariantDirections(count: VariantCount): string[] {
   return VARIANT_DIRECTIONS.slice(0, count)
 }
 

@@ -14,7 +14,7 @@ const baseJobInput = {
   stylePresetId: 'pixel-art',
   targetWidth: 32,
   targetHeight: 32,
-  variantCount: 3,
+  variantCount: 2,
 }
 
 describe('style presets and generation input', () => {
