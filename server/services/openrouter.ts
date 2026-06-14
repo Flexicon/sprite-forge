@@ -1,11 +1,18 @@
 import { z } from 'zod'
 
+const imageUrlItemSchema = z.object({
+  type: z.literal('image_url'),
+  image_url: z.object({
+    url: z.string(),
+  }),
+})
+
 const openrouterImageResponseSchema = z.object({
   choices: z.array(z.object({
     message: z.object({
       content: z.string().nullable(),
       role: z.string(),
-      images: z.array(z.string()).optional(),
+      images: z.array(z.union([z.string(), imageUrlItemSchema])).optional(),
     }).passthrough(),
     finish_reason: z.string().nullable(),
   })).min(1),
@@ -87,13 +94,19 @@ function extractImageDataUrl(content: string): string | null {
   return null
 }
 
-function assertHasImageContent(content: string | null | undefined, images: string[] | undefined): void {
+type ImageItem = string | { type: 'image_url'; image_url: { url: string } }
+
+function imageItemToDataUrl(image: ImageItem): string {
+  return typeof image === 'string' ? image : image.image_url.url
+}
+
+function assertHasImageContent(content: string | null | undefined, images: ImageItem[] | undefined): void {
   if (content) return
   if (images && images.length > 0) return
   throw new OpenRouterError('OpenRouter returned no image content in the response.')
 }
 
-function validateResponse(body: unknown): { content: string | null; images: string[] | undefined; responseJson: string } {
+function validateResponse(body: unknown): { content: string | null; images: ImageItem[] | undefined; responseJson: string } {
   const parsed = openrouterImageResponseSchema.safeParse(body)
   if (!parsed.success) {
     throw new OpenRouterError(`Unexpected OpenRouter response structure: ${JSON.stringify(body).slice(0, 500)}`)
@@ -110,9 +123,9 @@ function validateResponse(body: unknown): { content: string | null; images: stri
   return { content: message.content ?? null, images: message.images, responseJson: JSON.stringify(body) }
 }
 
-function resolveImageDataUrl(content: string | null, images: string[] | undefined): string | null {
+function resolveImageDataUrl(content: string | null, images: ImageItem[] | undefined): string | null {
   if (images && images.length > 0) {
-    return images[0]!
+    return imageItemToDataUrl(images[0]!)
   }
   if (content) {
     return extractImageDataUrl(content)
@@ -176,5 +189,4 @@ export async function generateImage(params: {
 
   return { imageDataUrl, responseJson }
 }
-
 
