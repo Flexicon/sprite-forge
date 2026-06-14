@@ -7,7 +7,7 @@
           <h1 class="mt-3 text-4xl font-black tracking-tight sm:text-6xl">Sprite Forge</h1>
         </div>
         <div class="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-300">
-          Phase 0 Bootstrap
+          Phase 1 SQLite
         </div>
       </nav>
 
@@ -21,11 +21,11 @@
           <div class="mt-8 grid gap-4 sm:grid-cols-2">
             <div class="rounded-2xl border border-dashed border-slate-700 bg-slate-950/70 p-5">
               <p class="font-semibold text-slate-100">Current milestone</p>
-              <p class="mt-2 text-sm text-slate-400">Nuxt, TypeScript, Tailwind, runtime config, and local data conventions.</p>
+              <p class="mt-2 text-sm text-slate-400">SQLite, Drizzle schema, migrations, database client, and a health check endpoint.</p>
             </div>
             <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-5">
               <p class="font-semibold text-slate-100">Next milestone</p>
-              <p class="mt-2 text-sm text-slate-400">SQLite + Drizzle schema for uploads, generation jobs, and variants.</p>
+              <p class="mt-2 text-sm text-slate-400">Local storage service for predictable upload and generated image paths.</p>
             </div>
           </div>
         </section>

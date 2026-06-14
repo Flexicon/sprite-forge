@@ -63,7 +63,7 @@ pnpm typecheck
 
 ## Phase 1 — SQLite + Drizzle
 
-Status: pending
+Status: completed
 
 ### Goal
 

@@ -54,6 +54,13 @@ pnpm typecheck
 ```
 
 Database scripts will be added with the Drizzle setup phase.
+Database scripts:
+
+```bash
+pnpm db:generate
+pnpm db:migrate
+pnpm db:studio
+```
 
 ## Local Data
 
@@ -65,6 +72,9 @@ data/
   storage/
 ```
 
+Run `pnpm db:migrate` to create or update `data/sprite-forge.sqlite`.
+The `GET /api/settings` endpoint includes a database health check that opens the SQLite file and verifies an insert/read inside a rolled-back savepoint.
+
 ## Current Status
 
-Phase 0 bootstrap is in progress: Nuxt, TypeScript, Tailwind, runtime config, and the initial home page shell.
+Phase 1 is complete: Nuxt bootstrap plus SQLite, Drizzle schema, migrations, database client, and a settings health check endpoint.
