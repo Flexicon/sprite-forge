@@ -73,8 +73,8 @@ data/
 ```
 
 Run `pnpm db:migrate` to create or update `data/sprite-forge.sqlite`.
-The `GET /api/settings` endpoint includes a database health check that opens the SQLite file and verifies an insert/read inside a rolled-back savepoint.
+The `GET /api/settings` endpoint includes database and storage health checks. The database check verifies an insert/read inside a rolled-back savepoint, and the storage check verifies local write/read/delete access under `STORAGE_DIR`.
 
 ## Current Status
 
-Phase 1 is complete: Nuxt bootstrap plus SQLite, Drizzle schema, migrations, database client, and a settings health check endpoint.
+Phase 2 is complete: Nuxt bootstrap, SQLite/Drizzle persistence, and a safe local storage service with settings diagnostics.
