@@ -25,6 +25,7 @@ export const generationJobs = sqliteTable('generation_jobs', {
   targetWidth: integer('target_width').notNull(),
   targetHeight: integer('target_height').notNull(),
   variantCount: integer('variant_count').notNull(),
+  backgroundMode: text('background_mode', { enum: ['transparent', 'plain'] }).notNull().default('transparent'),
   createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
   errorMessage: text('error_message'),
 }, (table) => [
@@ -42,6 +43,7 @@ export const generatedVariants = sqliteTable('generated_variants', {
   variantIndex: integer('variant_index').notNull(),
   variantDirection: text('variant_direction').notNull(),
   model: text('model').notNull(),
+  rawImagePath: text('raw_image_path'),
   finalImagePath: text('final_image_path'),
   previewImagePath: text('preview_image_path'),
   openrouterResponseJson: text('openrouter_response_json'),

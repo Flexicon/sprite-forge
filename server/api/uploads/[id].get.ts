@@ -1,22 +1,7 @@
-import { eq } from 'drizzle-orm'
-
-import { db } from '../../db/client'
-import { uploads } from '../../db/schema'
+import { getUploadById } from '../../utils/api-helpers'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
-
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'Upload ID is required.' })
-  }
-
-  const upload = await db.query.uploads.findFirst({
-    where: eq(uploads.id, id),
-  })
-
-  if (!upload) {
-    throw createError({ statusCode: 404, statusMessage: 'Upload not found.' })
-  }
-
+  const upload = await getUploadById(id!)
   return { upload }
 })
