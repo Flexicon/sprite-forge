@@ -79,6 +79,7 @@ async function generateSingleVariant(params: {
       targetWidth,
       targetHeight,
       useNearestNeighbor: isPixelArtPreset(stylePresetId),
+      removeBackground: backgroundMode === 'transparent',
     })
 
     const rawPath = storage.jobPath(jobId, 'variants', `${variantId}.raw.png`)
