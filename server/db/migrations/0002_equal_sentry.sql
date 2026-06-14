@@ -1,0 +1,1 @@
+ALTER TABLE `generation_jobs` ADD `background_mode` text DEFAULT 'transparent' NOT NULL;

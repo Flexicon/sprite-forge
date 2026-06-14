@@ -1,0 +1,1 @@
+ALTER TABLE `generated_variants` ADD `raw_image_path` text;
