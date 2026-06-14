@@ -22,4 +22,9 @@ export default defineNuxtConfig({
     strict: true,
     typeCheck: true
   },
+  vite: {
+    server: {
+      allowedHosts: ['dev-forge-sprite.nerfthis.xyz'],
+    },
+  },
 })
