@@ -7,7 +7,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: number]
 }>()
 
-const options = [4, 5, 6] as const
+const options = [1, 2, 3] as const
 </script>
 
 <template>

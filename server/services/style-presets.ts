@@ -41,9 +41,6 @@ const VARIANT_DIRECTIONS = [
   'Variant 1: most faithful to the original silhouette.',
   'Variant 2: slightly more stylized and expressive.',
   'Variant 3: stronger game-ready pixel-art interpretation.',
-  'Variant 4: alternate palette while preserving the same subject.',
-  'Variant 5: more dramatic lighting and contrast.',
-  'Variant 6: cleaner simplified low-detail sprite.',
 ] as const
 
 export const createGenerationJobSchema = z.object({
@@ -56,7 +53,7 @@ export const createGenerationJobSchema = z.object({
   targetHeight: z.number().int().refine(v => SUPPORTED_SIZES.includes(v as typeof SUPPORTED_SIZES[number]), {
     message: `targetHeight must be one of ${SUPPORTED_SIZES.join(', ')}`,
   }),
-  variantCount: z.union([z.literal(4), z.literal(5), z.literal(6)]),
+  variantCount: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   backgroundMode: z.union([z.literal('transparent'), z.literal('plain')]).default('transparent'),
   model: z.string().trim().min(1).optional(),
 })
@@ -65,7 +62,7 @@ export function getStylePresetById(id: string): StylePreset | undefined {
   return STYLE_PRESETS.find(preset => preset.id === id)
 }
 
-export function getVariantDirections(count: 4 | 5 | 6): string[] {
+export function getVariantDirections(count: 1 | 2 | 3): string[] {
   return VARIANT_DIRECTIONS.slice(0, count)
 }
 
@@ -80,7 +77,9 @@ export function buildGenerationPrompt(params: {
   const { stylePreset, userPrompt, targetWidth, targetHeight, variantDirection, backgroundMode } = params
 
   const backgroundInstruction = backgroundMode === 'transparent'
-    ? 'Use a transparent background if possible. If transparency is not possible, use a flat plain background with strong subject separation.'
+    ? `Remove the source image background completely and output the sprite on a real transparent alpha channel.
+- Do not include any white, off-white, gray, checkerboard, matte, canvas, shadow, glow, or placeholder background pixels.
+- Keep only the sprite subject and its intentional interior details; all surrounding background pixels must be fully transparent.`
     : 'Use a flat plain background with strong subject separation.'
 
   return `Transform the provided source image into a single 2D game sprite.

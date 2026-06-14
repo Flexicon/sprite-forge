@@ -47,7 +47,7 @@ export async function processGeneratedImage(options: ProcessImageOptions): Promi
     .png()
     .toBuffer()
 
-  const previewBuffer = await sharp(rawBuffer)
+  const previewBuffer = await sharp(finalBuffer)
     .resize({
       width: previewSize,
       height: previewSize,
