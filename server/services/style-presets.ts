@@ -58,7 +58,7 @@ export const createGenerationJobSchema = z.object({
   }),
   variantCount: z.union([z.literal(4), z.literal(5), z.literal(6)]),
   backgroundMode: z.union([z.literal('transparent'), z.literal('plain')]).default('transparent'),
-  model: z.string().optional(),
+  model: z.string().trim().min(1).optional(),
 })
 
 export function getStylePresetById(id: string): StylePreset | undefined {

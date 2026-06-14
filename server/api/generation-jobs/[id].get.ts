@@ -1,17 +1,22 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../db/client'
 import { generationJobs } from '../../db/schema'
-import { getJobById } from '../../utils/api-helpers'
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, 'id')
-  const job = await getJobById(id!)
 
-  // Re-fetch with upload relation for full response
-  const jobWithUpload = await db.query.generationJobs.findFirst({
-    where: eq(generationJobs.id, job.id),
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Job ID is required.' })
+  }
+
+  const job = await db.query.generationJobs.findFirst({
+    where: eq(generationJobs.id, id),
     with: { variants: true, upload: true },
   })
 
-  return { job: jobWithUpload }
+  if (!job) {
+    throw createError({ statusCode: 404, statusMessage: 'Job not found.' })
+  }
+
+  return { job }
 })

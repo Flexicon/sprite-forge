@@ -33,6 +33,7 @@
                 <textarea
                   v-model="userPrompt"
                   rows="3"
+                  maxlength="2000"
                   placeholder="Describe the desired transformation..."
                   class="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-500"
                 />
@@ -185,8 +186,10 @@ function onUpload(upload: UploadRecord) {
 
 async function loadRecentJobs() {
   try {
-    const response = await $fetch<{ jobs: GenerationJob[] }>('/api/generation-jobs')
-    recentJobs.value = response.jobs.slice(0, 5)
+    const response = await $fetch<{ jobs: GenerationJob[] }>('/api/generation-jobs', {
+      query: { lite: '1', limit: '5' },
+    })
+    recentJobs.value = response.jobs
   }
   catch {
     // Silently ignore recent job load failures

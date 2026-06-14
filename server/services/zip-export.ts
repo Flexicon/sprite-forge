@@ -20,6 +20,12 @@ export async function createVariantZip(params: {
 
   archive.on('data', (chunk: Buffer) => chunks.push(chunk))
 
+  const completionPromise = new Promise<void>((resolve, reject) => {
+    archive.on('end', resolve)
+    archive.on('error', reject)
+    archive.on('warning', reject)
+  })
+
   for (const { index, buffer } of variantBuffers) {
     archive.append(buffer, { name: `variant-${index}.png` })
   }
@@ -27,11 +33,7 @@ export async function createVariantZip(params: {
   archive.append(metadataJson, { name: 'metadata.json' })
   archive.finalize()
 
-  await new Promise<void>((resolve, reject) => {
-    archive.on('end', resolve)
-    archive.on('error', reject)
-    archive.on('warning', reject)
-  })
+  await completionPromise
 
   const buffer = Buffer.concat(chunks)
   await storage.writeFile(zipPath, buffer)

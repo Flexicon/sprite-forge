@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../../../db/client'
 import { generationJobs } from '../../../db/schema'
-import { storage } from '../../../services/storage'
+import { readFileOrNotFound } from '../../../utils/storage-helpers'
 import { getVariantById } from '../../../utils/api-helpers'
 
 // fallow-ignore-next-line complexity
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
     where: eq(generationJobs.id, variant.jobId),
   })
 
-  const buffer = await storage.readFile(variant.finalImagePath)
+  const buffer = await readFileOrNotFound(variant.finalImagePath)
 
   const jobId = job?.id ?? 'unknown'
   const width = job?.targetWidth ?? 'unknown'

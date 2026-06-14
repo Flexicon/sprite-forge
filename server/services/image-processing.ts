@@ -23,14 +23,16 @@ export type ProcessImageOptions = {
 export async function processGeneratedImage(options: ProcessImageOptions): Promise<ProcessedImage> {
   const { dataUrl, targetWidth, targetHeight, useNearestNeighbor, previewSize = 512 } = options
 
-  const { data: rawBuffer } = parseDataUrl(dataUrl)
+  const { data: rawBufferDecoded } = parseDataUrl(dataUrl)
 
-  const inputSharp = sharp(rawBuffer)
+  const inputSharp = sharp(rawBufferDecoded)
   const metadata = await inputSharp.metadata()
 
   if (!metadata.width || !metadata.height) {
     throw new Error('Unable to determine generated image dimensions.')
   }
+
+  const rawBuffer = await sharp(rawBufferDecoded).png().toBuffer()
 
   const resizeKernel = useNearestNeighbor ? 'nearest' : 'lanczos3'
 
@@ -51,7 +53,7 @@ export async function processGeneratedImage(options: ProcessImageOptions): Promi
       height: previewSize,
       fit: 'contain',
       background: { r: 0, g: 0, b: 0, alpha: 0 },
-      kernel: resizeKernel,
+      kernel: 'nearest',
     })
     .png()
     .toBuffer()

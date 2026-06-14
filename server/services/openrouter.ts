@@ -5,6 +5,7 @@ const openrouterImageResponseSchema = z.object({
     message: z.object({
       content: z.string().nullable(),
       role: z.string(),
+      images: z.array(z.string()).optional(),
     }).passthrough(),
     finish_reason: z.string().nullable(),
   })).min(1),
@@ -86,20 +87,45 @@ function extractImageDataUrl(content: string): string | null {
   return null
 }
 
-function validateResponse(body: unknown): { content: string; responseJson: string } {
+function assertHasImageContent(content: string | null | undefined, images: string[] | undefined): void {
+  if (content) return
+  if (images && images.length > 0) return
+  throw new OpenRouterError('OpenRouter returned no image content in the response.')
+}
+
+function validateResponse(body: unknown): { content: string | null; images: string[] | undefined; responseJson: string } {
   const parsed = openrouterImageResponseSchema.safeParse(body)
   if (!parsed.success) {
     throw new OpenRouterError(`Unexpected OpenRouter response structure: ${JSON.stringify(body).slice(0, 500)}`)
   }
 
-  const choice = parsed.data.choices[0]
-  const content = choice?.message?.content
-
-  if (!content) {
+  const choices = parsed.data.choices
+  if (choices.length === 0) {
     throw new OpenRouterError('OpenRouter returned no image content in the response.')
   }
 
-  return { content, responseJson: JSON.stringify(body) }
+  const message = choices[0]!.message
+  assertHasImageContent(message.content, message.images)
+
+  return { content: message.content ?? null, images: message.images, responseJson: JSON.stringify(body) }
+}
+
+function resolveImageDataUrl(content: string | null, images: string[] | undefined): string | null {
+  if (images && images.length > 0) {
+    return images[0]!
+  }
+  if (content) {
+    return extractImageDataUrl(content)
+  }
+  return null
+}
+
+async function throwApiError(response: Response): Promise<never> {
+  const text = await response.text().catch(() => null)
+  throw new OpenRouterError(
+    `OpenRouter API error ${response.status}: ${text || response.statusText}`,
+    response.status,
+  )
 }
 
 export async function generateImage(params: {
@@ -136,19 +162,16 @@ export async function generateImage(params: {
   })
 
   if (!response.ok) {
-    const text = await response.text().catch(() => null)
-    throw new OpenRouterError(
-      `OpenRouter API error ${response.status}: ${text || response.statusText}`,
-      response.status,
-    )
+    return throwApiError(response)
   }
 
   const rawBody = await response.json()
-  const { content, responseJson } = validateResponse(rawBody)
-  const imageDataUrl = extractImageDataUrl(content)
+  const { content, images, responseJson } = validateResponse(rawBody)
+  const imageDataUrl = resolveImageDataUrl(content, images)
 
   if (!imageDataUrl) {
-    throw new OpenRouterError(`Could not extract image data URL from response content. Content preview: ${content.slice(0, 200)}`)
+    const preview = content ? content.slice(0, 200) : 'null'
+    throw new OpenRouterError(`Could not extract image data URL from response content. Content preview: ${preview}`)
   }
 
   return { imageDataUrl, responseJson }
