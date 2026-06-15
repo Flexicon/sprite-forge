@@ -21,6 +21,7 @@ const emit = defineEmits<{
 
 defineProps<{
   compact?: boolean
+  hideDetails?: boolean
 }>()
 
 const fileInputId = 'source-upload-file'
@@ -124,16 +125,18 @@ onBeforeUnmount(clearPreviewUrl)
     >
 
     <div
-      v-if="previewUrl || upload || warning || errorMessage"
+      v-if="!hideDetails"
       class="mt-5 grid gap-5"
       :class="compact ? '' : 'md:grid-cols-[220px_1fr]'"
     >
-      <div v-if="previewUrl" class="flex min-h-52 items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-900 p-4">
+      <div class="flex min-h-52 items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-900 p-4">
         <img
+          v-if="previewUrl"
           :src="previewUrl"
           alt="Uploaded source sprite preview"
           class="max-h-48 max-w-full rounded-lg object-contain [image-rendering:pixelated]"
         >
+        <p v-else class="text-center text-sm text-slate-500">No source image uploaded yet.</p>
       </div>
 
       <div class="space-y-3 text-sm">
@@ -163,6 +166,9 @@ onBeforeUnmount(clearPreviewUrl)
           </div>
         </dl>
 
+        <p v-else class="rounded-2xl border border-slate-800 bg-slate-900 p-4 text-slate-400">
+          The upload record will appear here after validation, PNG normalization, and SQLite persistence.
+        </p>
       </div>
     </div>
   </section>

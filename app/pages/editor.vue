@@ -100,7 +100,7 @@
         </div>
 
         <div class="space-y-6">
-          <SourceUploader compact @uploaded="onUpload" />
+          <SourceUploader compact hide-details @uploaded="onUpload" />
 
           <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
             <h2 class="text-lg font-bold text-slate-100">Tools</h2>
