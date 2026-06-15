@@ -37,21 +37,24 @@
 
           <div class="mt-6 flex min-h-[24rem] items-center justify-center overflow-auto rounded-2xl border border-slate-800 bg-slate-950 p-4">
             <div v-if="imageUrl" class="max-w-full">
-              <canvas
-                ref="displayCanvas"
-                class="rounded-lg border border-slate-700 bg-transparent [image-rendering:pixelated]"
-                :class="activeTool === 'eyedropper' ? 'cursor-crosshair' : 'cursor-pencil'"
-                :style="canvasStyle"
-                aria-label="Editable sprite canvas"
-                @contextmenu.prevent
-                @pointerdown="onPointerDown"
-                @pointermove="onPointerMove"
-                @pointerup="onPointerUp"
-                @pointercancel="onPointerUp"
-                @pointerleave="onPointerUp"
-              />
+              <div class="relative inline-block rounded-lg border border-slate-700" :style="canvasFrameStyle">
+                <canvas
+                  ref="displayCanvas"
+                  class="relative z-10 block rounded-lg bg-transparent [image-rendering:pixelated]"
+                  :class="activeTool === 'eyedropper' ? 'cursor-crosshair' : 'cursor-pencil'"
+                  :style="canvasStyle"
+                  aria-label="Editable sprite canvas"
+                  @contextmenu.prevent
+                  @pointerdown="onPointerDown"
+                  @pointermove="onPointerMove"
+                  @pointerup="onPointerUp"
+                  @pointercancel="onPointerUp"
+                  @pointerleave="onPointerUp"
+                />
+                <div v-if="showGrid" class="pointer-events-none absolute inset-0 z-20 rounded-lg" :style="gridStyle" />
+              </div>
               <p v-if="canvasReady" class="mt-3 text-center text-xs text-slate-500">
-                Editing {{ imageDimensions }} at {{ previewScale }}x preview scale.
+                Editing {{ imageDimensions }} at {{ previewScale }}x zoom.
               </p>
             </div>
             <div v-else class="max-w-sm text-center text-sm text-slate-500">
@@ -88,6 +91,32 @@
 
           <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
             <h2 class="text-lg font-bold text-slate-100">Tools</h2>
+            <div v-if="canvasReady" class="mt-3 rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-slate-300">
+              <p>
+                <span class="text-slate-500">Active:</span>
+                {{ activeToolLabel }} / {{ selectedColor }} / {{ brushSize }}px brush / {{ previewScale }}x zoom
+              </p>
+            </div>
+
+            <div class="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                :disabled="!canUndo"
+                :class="historyButtonClass(canUndo)"
+                @click="undoEdit"
+              >
+                Undo
+              </button>
+              <button
+                type="button"
+                :disabled="!canRedo"
+                :class="historyButtonClass(canRedo)"
+                @click="redoEdit"
+              >
+                Redo
+              </button>
+            </div>
+
             <div class="mt-4 grid grid-cols-3 gap-2">
               <button
                 v-for="tool in tools"
@@ -126,8 +155,31 @@
               </div>
             </fieldset>
 
+            <fieldset class="mt-5">
+              <legend class="text-sm font-semibold text-slate-200">Zoom</legend>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button type="button" :class="zoomButtonClass" @click="zoomOut">-</button>
+                <button
+                  v-for="scale in zoomScales"
+                  :key="scale"
+                  type="button"
+                  :class="zoomScaleButtonClass(scale)"
+                  @click="zoomScale = scale"
+                >
+                  {{ scale }}x
+                </button>
+                <button type="button" :class="zoomButtonClass" @click="zoomIn">+</button>
+              </div>
+            </fieldset>
+
+            <label class="mt-5 flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm font-semibold text-slate-200">
+              <input v-model="showGrid" type="checkbox" class="size-4 rounded border-slate-700 bg-slate-950">
+              Show pixel grid
+            </label>
+
             <p class="mt-5 text-xs leading-5 text-slate-500">
               Pencil paints with the selected color. Eraser clears pixels to transparent. Eyedropper samples the clicked pixel color.
+              Shortcuts: P pencil, E eraser, I eyedropper, G grid, Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z redo.
             </p>
           </section>
         </div>
@@ -148,6 +200,7 @@ type CanvasPair = {
   visibleContext: CanvasRenderingContext2D
 }
 type VisibleCanvasPair = Pick<CanvasPair, 'backingCanvas' | 'visibleCanvas' | 'visibleContext'>
+type EditableElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
 
 const route = useRoute()
 const router = useRouter()
@@ -162,6 +215,10 @@ const isDrawing = ref(false)
 const selectedColor = ref('#38bdf8')
 const activeTool = ref<EditorTool>('pencil')
 const brushSize = ref<1 | 2 | 4>(1)
+const zoomScale = ref(16)
+const showGrid = ref(true)
+const undoStack = shallowRef<ImageData[]>([])
+const redoStack = shallowRef<ImageData[]>([])
 
 const tools: { id: EditorTool, label: string }[] = [
   { id: 'pencil', label: 'Pencil' },
@@ -169,6 +226,13 @@ const tools: { id: EditorTool, label: string }[] = [
   { id: 'eyedropper', label: 'Pick' },
 ]
 const brushSizes = [1, 2, 4] as const
+const zoomScales = [4, 8, 12, 16, 24, 32] as const
+const maxHistoryEntries = 40
+const historyShortcutActions: Record<string, () => void> = {
+  z: undoEdit,
+  'shift+z': redoEdit,
+  y: redoEdit,
+}
 const variantId = computed(() => getQueryValue(route.query.variantId))
 const uploadId = computed(() => getQueryValue(route.query.uploadId))
 const sourceKind = computed<'variant' | 'upload' | null>(() => {
@@ -202,10 +266,7 @@ const imageDimensions = computed(() => {
   return `${naturalWidth.value}x${naturalHeight.value}`
 })
 const previewScale = computed(() => {
-  const longestSide = Math.max(Number(naturalWidth.value), Number(naturalHeight.value), 1)
-  const powerOfTwoSide = 2 ** Math.ceil(Math.log2(Math.max(longestSide, 32)))
-
-  return Math.max(2, Math.min(16, 512 / powerOfTwoSide))
+  return zoomScale.value
 })
 const canvasStyle = computed(() => {
   if (!naturalWidth.value || !naturalHeight.value) return {}
@@ -216,6 +277,28 @@ const canvasStyle = computed(() => {
     touchAction: 'none',
   }
 })
+const canvasFrameStyle = computed(() => {
+  if (!naturalWidth.value || !naturalHeight.value) return {}
+
+  return {
+    ...canvasStyle.value,
+    backgroundColor: '#1e293b',
+    backgroundImage: 'linear-gradient(45deg, #334155 25%, transparent 25%), linear-gradient(-45deg, #334155 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #334155 75%), linear-gradient(-45deg, transparent 75%, #334155 75%)',
+    backgroundPosition: '0 0, 0 8px, 8px -8px, -8px 0',
+    backgroundSize: '16px 16px',
+  }
+})
+const gridStyle = computed(() => {
+  const scale = previewScale.value
+
+  return {
+    backgroundImage: 'linear-gradient(to right, rgba(148, 163, 184, 0.35) 1px, transparent 1px), linear-gradient(to bottom, rgba(148, 163, 184, 0.35) 1px, transparent 1px)',
+    backgroundSize: `${scale}px ${scale}px`,
+  }
+})
+const activeToolLabel = computed(() => tools.find(tool => tool.id === activeTool.value)?.label || activeTool.value)
+const canUndo = computed(() => undoStack.value.length > 0)
+const canRedo = computed(() => redoStack.value.length > 0)
 
 let loadToken = 0
 
@@ -234,6 +317,8 @@ function resetImageState() {
   naturalHeight.value = null
   canvasReady.value = false
   isDrawing.value = false
+  undoStack.value = []
+  redoStack.value = []
 }
 
 async function loadImageToCanvas(url: string) {
@@ -279,7 +364,20 @@ async function renderDecodedImage(image: HTMLImageElement, token: number) {
   editCanvas.value = canvases.backingCanvas
   naturalWidth.value = canvases.backingCanvas.width
   naturalHeight.value = canvases.backingCanvas.height
+  zoomScale.value = getInitialZoomScale(canvases.backingCanvas.width, canvases.backingCanvas.height)
   canvasReady.value = true
+}
+
+function getInitialZoomScale(width: number, height: number) {
+  const longestSide = Math.max(width, height, 1)
+  const matchedPreset = [
+    { maxSide: 16, scale: 32 },
+    { maxSide: 32, scale: 24 },
+    { maxSide: 64, scale: 16 },
+    { maxSide: 96, scale: 8 },
+  ].find(preset => longestSide <= preset.maxSide)
+
+  return matchedPreset?.scale ?? 4
 }
 
 function createCanvasPair(image: HTMLImageElement): CanvasPair | null {
@@ -319,6 +417,55 @@ function copyBackingToVisible() {
   if (!backingCanvas || !visibleCanvas || !visibleContext) return
 
   drawBackingToVisibleCanvas({ backingCanvas, visibleCanvas, visibleContext })
+}
+
+function getCurrentImageData() {
+  const backingCanvas = editCanvas.value
+  const context = backingCanvas?.getContext('2d')
+
+  if (!backingCanvas || !context) return null
+
+  return context.getImageData(0, 0, backingCanvas.width, backingCanvas.height)
+}
+
+function pushUndoSnapshot() {
+  const snapshot = getCurrentImageData()
+
+  if (!snapshot) return
+  const nextStack = [...undoStack.value, snapshot].slice(-maxHistoryEntries)
+  undoStack.value = nextStack
+  redoStack.value = []
+}
+
+function restoreSnapshot(snapshot: ImageData) {
+  const backingCanvas = editCanvas.value
+  const context = backingCanvas?.getContext('2d')
+
+  if (!backingCanvas || !context) return
+  context.putImageData(snapshot, 0, 0)
+  copyBackingToVisible()
+}
+
+function undoEdit() {
+  const snapshot = undoStack.value.at(-1)
+  const current = getCurrentImageData()
+
+  if (!snapshot || !current) return
+  undoStack.value = undoStack.value.slice(0, -1)
+  redoStack.value = [...redoStack.value, current].slice(-maxHistoryEntries)
+  restoreSnapshot(snapshot)
+  editorMessage.value = 'Undid the last edit.'
+}
+
+function redoEdit() {
+  const snapshot = redoStack.value.at(-1)
+  const current = getCurrentImageData()
+
+  if (!snapshot || !current) return
+  redoStack.value = redoStack.value.slice(0, -1)
+  undoStack.value = [...undoStack.value, current].slice(-maxHistoryEntries)
+  restoreSnapshot(snapshot)
+  editorMessage.value = 'Redid the last edit.'
 }
 
 function getCanvasPoint(event: PointerEvent) {
@@ -385,6 +532,7 @@ function onPointerDown(event: PointerEvent) {
   const point = getCanvasPoint(event)
 
   if (!point) return
+  if (activeTool.value !== 'eyedropper') pushUndoSnapshot()
   applyToolAt(point)
   isDrawing.value = activeTool.value !== 'eyedropper'
 }
@@ -399,7 +547,9 @@ function onPointerMove(event: PointerEvent) {
 
 function onPointerUp(event: PointerEvent) {
   isDrawing.value = false
-  displayCanvas.value?.releasePointerCapture(event.pointerId)
+  if (displayCanvas.value?.hasPointerCapture(event.pointerId)) {
+    displayCanvas.value.releasePointerCapture(event.pointerId)
+  }
 }
 
 function rgbToHex(red: number, green: number, blue: number) {
@@ -424,6 +574,81 @@ function brushButtonClass(size: 1 | 2 | 4) {
   ]
 }
 
+function historyButtonClass(enabled: boolean) {
+  return [
+    'rounded-xl border px-3 py-2 text-sm font-semibold transition',
+    enabled
+      ? 'border-slate-700 bg-slate-950 text-slate-200 hover:border-slate-500 hover:text-white'
+      : 'cursor-not-allowed border-slate-800 bg-slate-950/60 text-slate-600',
+  ]
+}
+
+const zoomButtonClass = 'rounded-lg border border-slate-700 bg-slate-950 px-3 py-1.5 text-sm font-bold text-slate-200 transition hover:border-slate-500 hover:text-white'
+
+function zoomScaleButtonClass(scale: number) {
+  return [
+    'rounded-lg border px-3 py-1.5 text-sm font-semibold transition',
+    previewScale.value === scale
+      ? 'border-cyan-400 bg-cyan-950 text-cyan-100'
+      : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500 hover:text-white',
+  ]
+}
+
+function zoomIn() {
+  const currentIndex = zoomScales.findIndex(scale => scale === zoomScale.value)
+  const nextIndex = Math.min(zoomScales.length - 1, currentIndex + 1)
+  zoomScale.value = zoomScales[nextIndex] ?? zoomScale.value
+}
+
+function zoomOut() {
+  const currentIndex = zoomScales.findIndex(scale => scale === zoomScale.value)
+  const nextIndex = Math.max(0, currentIndex - 1)
+  zoomScale.value = zoomScales[nextIndex] ?? zoomScale.value
+}
+
+function isEditableElement(target: EventTarget | null): target is EditableElement {
+  return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement
+}
+
+function onEditorKeydown(event: KeyboardEvent) {
+  if (isEditableElement(event.target)) return
+  if (handleHistoryShortcut(event)) return
+  handleToolShortcut(event)
+}
+
+function handleHistoryShortcut(event: KeyboardEvent) {
+  const action = historyShortcutActions[getHistoryShortcutKey(event)]
+
+  if (action) {
+    event.preventDefault()
+    action()
+    return true
+  }
+
+  return false
+}
+
+function getHistoryShortcutKey(event: KeyboardEvent) {
+  if (!event.ctrlKey && !event.metaKey) return ''
+
+  return `${event.shiftKey ? 'shift+' : ''}${event.key.toLowerCase()}`
+}
+
+function handleToolShortcut(event: KeyboardEvent) {
+  const key = event.ctrlKey || event.metaKey ? '' : event.key.toLowerCase()
+  const shortcutActions: Record<string, () => void> = {
+    p: () => { activeTool.value = 'pencil' },
+    e: () => { activeTool.value = 'eraser' },
+    i: () => { activeTool.value = 'eyedropper' },
+    g: () => { showGrid.value = !showGrid.value },
+    '+': zoomIn,
+    '=': zoomIn,
+    '-': zoomOut,
+  }
+
+  shortcutActions[key]?.()
+}
+
 function downloadEditedPng() {
   const backingCanvas = editCanvas.value
 
@@ -446,6 +671,14 @@ function downloadEditedPng() {
 async function onUpload(upload: UploadRecord) {
   await router.replace({ path: '/editor', query: { uploadId: upload.id } })
 }
+
+onMounted(() => {
+  window.addEventListener('keydown', onEditorKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onEditorKeydown)
+})
 
 watch(imageUrl, url => loadImageToCanvas(url), { immediate: true })
 </script>

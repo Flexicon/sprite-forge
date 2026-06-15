@@ -128,7 +128,7 @@ Implement the minimum useful pixel-touchup workflow in the browser.
 
 ## Phase 3 - Editor Ergonomics
 
-Status: pending
+Status: completed
 
 ### Goal
 
