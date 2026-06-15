@@ -147,9 +147,16 @@ export async function generateImage(params: {
   siteUrl: string
   appName: string
   prompt: string
-  base64ImageDataUrl: string
+  base64ImageDataUrl?: string
 }): Promise<{ imageDataUrl: string; responseJson: string }> {
   const { model, apiKey, siteUrl, appName, prompt, base64ImageDataUrl } = params
+  const messageContent: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }> = [
+    { type: 'text', text: prompt },
+  ]
+
+  if (base64ImageDataUrl) {
+    messageContent.push({ type: 'image_url', image_url: { url: base64ImageDataUrl } })
+  }
 
   const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
@@ -164,10 +171,7 @@ export async function generateImage(params: {
       messages: [
         {
           role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            { type: 'image_url', image_url: { url: base64ImageDataUrl } },
-          ],
+          content: messageContent,
         },
       ],
       modalities: ['image', 'text'],

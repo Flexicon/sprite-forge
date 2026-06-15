@@ -21,7 +21,8 @@ export type Variant = {
 
 export type GenerationJob = {
   id: string
-  uploadId: string
+  uploadId: string | null
+  sourceMode: 'image' | 'prompt'
   status: string
   model: string
   userPrompt: string

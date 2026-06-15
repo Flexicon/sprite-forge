@@ -30,7 +30,7 @@
             >
               {{ job.status }}
             </span>
-            <span class="text-sm text-slate-400">{{ job.stylePresetId }} — {{ job.targetWidth }}x{{ job.targetHeight }} — {{ job.variantCount }} variants</span>
+            <span class="text-sm text-slate-400">{{ sourceModeLabel(job.sourceMode) }} — {{ job.stylePresetId }} — {{ job.targetWidth }}x{{ job.targetHeight }} — {{ job.variantCount }} variants</span>
           </div>
           <p class="mt-3 text-sm text-slate-300">{{ job.userPrompt }}</p>
           <div class="mt-4 flex flex-wrap items-center gap-3">
@@ -74,6 +74,13 @@
           </p>
         </div>
 
+        <div v-else class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
+          <h2 class="text-lg font-bold text-slate-100">Prompt-created sprite</h2>
+          <p class="mt-2 text-sm text-slate-400">
+            This job was generated from the prompt and settings only, with no source image.
+          </p>
+        </div>
+
         <!-- Variants -->
         <GeneratedVariantGrid
           :variants="job.variants"
@@ -104,6 +111,10 @@ const completedVariants = computed(() =>
 const zipUrl = computed(() =>
   job.value ? `/api/generation-jobs/${job.value.id}/download.zip` : '',
 )
+
+function sourceModeLabel(mode: GenerationJob['sourceMode']) {
+  return mode === 'prompt' ? 'Prompt-created' : 'Source transform'
+}
 
 async function destroyJob(currentJobId: string) {
   isDeleting.value = true

@@ -43,10 +43,18 @@ const VARIANT_DIRECTIONS = [
   'Variant 3: stronger game-ready pixel-art interpretation.',
 ] as const
 
+const PROMPT_ONLY_VARIANT_DIRECTIONS = [
+  'Variant 1: simple iconic interpretation with maximum readability.',
+  'Variant 2: more expressive characterful interpretation with distinct shape language.',
+  'Variant 3: bolder game-ready interpretation with stronger stylization.',
+] as const
+
 type VariantCount = 1 | 2 | 3
+export type SourceMode = 'image' | 'prompt'
 
 export const createGenerationJobSchema = z.object({
-  uploadId: z.string().uuid(),
+  sourceMode: z.union([z.literal('image'), z.literal('prompt')]).default('image'),
+  uploadId: z.string().uuid().optional(),
   userPrompt: z.string().min(1).max(2000),
   stylePresetId: z.string().min(1),
   targetWidth: z.number().int().refine(v => SUPPORTED_SIZES.includes(v as typeof SUPPORTED_SIZES[number]), {
@@ -58,14 +66,24 @@ export const createGenerationJobSchema = z.object({
   variantCount: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   backgroundMode: z.union([z.literal('transparent'), z.literal('plain')]).default('transparent'),
   model: z.string().trim().min(1).optional(),
+}).superRefine((value, ctx) => {
+  if (value.sourceMode === 'image' && !value.uploadId) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['uploadId'],
+      message: 'uploadId is required when sourceMode is image.',
+    })
+  }
 })
 
 export function getStylePresetById(id: string): StylePreset | undefined {
   return STYLE_PRESETS.find(preset => preset.id === id)
 }
 
-export function getVariantDirections(count: VariantCount): string[] {
-  return VARIANT_DIRECTIONS.slice(0, count)
+export function getVariantDirections(count: VariantCount, sourceMode: SourceMode = 'image'): string[] {
+  const directions = sourceMode === 'prompt' ? PROMPT_ONLY_VARIANT_DIRECTIONS : VARIANT_DIRECTIONS
+
+  return directions.slice(0, count)
 }
 
 export function buildGenerationPrompt(params: {
@@ -75,14 +93,57 @@ export function buildGenerationPrompt(params: {
   targetHeight: number
   variantDirection: string
   backgroundMode: 'transparent' | 'plain'
+  sourceMode?: SourceMode
 }): string {
-  const { stylePreset, userPrompt, targetWidth, targetHeight, variantDirection, backgroundMode } = params
+  const { stylePreset, userPrompt, targetWidth, targetHeight, variantDirection, backgroundMode, sourceMode = 'image' } = params
 
   const backgroundInstruction = backgroundMode === 'transparent'
-    ? `Remove the source image background completely and output the sprite on a real transparent alpha channel.
+    ? sourceMode === 'image'
+      ? `Remove the source image background completely and output the sprite on a real transparent alpha channel.
+- Do not include any white, off-white, gray, checkerboard, matte, canvas, shadow, glow, or placeholder background pixels.
+- Keep only the sprite subject and its intentional interior details; all surrounding background pixels must be fully transparent.`
+      : `Output the sprite on a real transparent alpha channel.
 - Do not include any white, off-white, gray, checkerboard, matte, canvas, shadow, glow, or placeholder background pixels.
 - Keep only the sprite subject and its intentional interior details; all surrounding background pixels must be fully transparent.`
     : 'Use a flat plain background with strong subject separation.'
+
+  if (sourceMode === 'prompt') {
+    return `Create a brand new single 2D game sprite from the following concept.
+
+Style preset:
+${stylePreset.name} — ${stylePreset.prompt}
+
+Sprite concept:
+${userPrompt}
+
+Output target:
+- Intended final sprite size: ${targetWidth}x${targetHeight}px
+- Sprite should remain readable at that final size.
+- The generated image may be larger, but it must be suitable for deterministic downscaling.
+
+Variant direction:
+${variantDirection}
+
+Creative direction:
+- Design an original sprite that clearly expresses the concept.
+- Use a strong readable silhouette.
+- Keep the subject centered and isolated.
+- Favor iconic game-asset readability over illustration detail.
+- Make the sprite feel complete as a standalone game asset.
+
+Hard constraints:
+- Create one centered sprite, not a scene and not a full illustration.
+- ${backgroundInstruction}
+- No text.
+- No watermark.
+- No border.
+- No UI frame.
+- No sprite sheet.
+- No multiple characters unless explicitly requested.
+- Avoid tiny details that will collapse at the target size.
+- Prefer clean readable shapes.
+- Prefer game asset readability over painterly detail.`
+  }
 
   return `Transform the provided source image into a single 2D game sprite.
 

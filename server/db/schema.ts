@@ -15,8 +15,8 @@ export const uploads = sqliteTable('uploads', {
 export const generationJobs = sqliteTable('generation_jobs', {
   id: text('id').primaryKey(),
   uploadId: text('upload_id')
-    .notNull()
     .references(() => uploads.id, { onDelete: 'restrict' }),
+  sourceMode: text('source_mode', { enum: ['image', 'prompt'] }).notNull().default('image'),
   status: text('status', { enum: ['queued', 'running', 'completed', 'failed', 'cancelled'] }).notNull(),
   model: text('model').notNull(),
   userPrompt: text('user_prompt').notNull(),

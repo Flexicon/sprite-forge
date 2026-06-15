@@ -37,13 +37,14 @@ async function generateSingleVariant(params: {
   targetWidth: number
   targetHeight: number
   backgroundMode: 'transparent' | 'plain'
-  base64ImageDataUrl: string
+  sourceMode: 'image' | 'prompt'
+  base64ImageDataUrl?: string
   config: ReturnType<typeof getOpenRouterConfig>
 }): Promise<{ status: 'completed' | 'failed'; errorMessage?: string }> {
   const {
     jobId, variantId, variantIndex, variantDirection, model,
     stylePresetId, stylePrompt, userPrompt, targetWidth, targetHeight,
-    backgroundMode, base64ImageDataUrl, config,
+    backgroundMode, sourceMode, base64ImageDataUrl, config,
   } = params
 
   const prompt = buildGenerationPrompt({
@@ -53,6 +54,7 @@ async function generateSingleVariant(params: {
     targetHeight,
     variantDirection,
     backgroundMode,
+    sourceMode,
   })
 
   await db.insert(generatedVariants).values({
@@ -162,9 +164,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const upload = await resolveUpload(input)
-  const uploadBuffer = await storage.readFile(upload.storagePath)
-  const base64ImageDataUrl = bufferToPngDataUrl(uploadBuffer)
+  const upload = input.sourceMode === 'image' ? await resolveUpload({ uploadId: input.uploadId! }) : null
+  const uploadBuffer = upload ? await storage.readFile(upload.storagePath) : null
+  const base64ImageDataUrl = uploadBuffer ? bufferToPngDataUrl(uploadBuffer) : undefined
 
   const jobId = crypto.randomUUID()
   const config = getOpenRouterConfig()
@@ -172,7 +174,8 @@ export default defineEventHandler(async (event) => {
 
   await db.insert(generationJobs).values({
     id: jobId,
-    uploadId: input.uploadId,
+    uploadId: upload?.id ?? null,
+    sourceMode: input.sourceMode,
     status: 'running',
     model,
     userPrompt: input.userPrompt,
@@ -184,7 +187,7 @@ export default defineEventHandler(async (event) => {
     backgroundMode: input.backgroundMode,
   }).returning()
 
-  const variantDirections = getVariantDirections(input.variantCount)
+  const variantDirections = getVariantDirections(input.variantCount, input.sourceMode)
   const variantResults: Array<{ status: string }> = []
   let jobErrorMessage: string | null = null
 
@@ -203,6 +206,7 @@ export default defineEventHandler(async (event) => {
       targetWidth: input.targetWidth,
       targetHeight: input.targetHeight,
       backgroundMode: input.backgroundMode,
+      sourceMode: input.sourceMode,
       base64ImageDataUrl,
       config,
     })

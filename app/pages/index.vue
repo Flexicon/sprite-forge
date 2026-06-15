@@ -17,25 +17,67 @@
       </nav>
 
       <div class="space-y-6">
-        <SourceUploader @uploaded="onUpload" />
+        <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-cyan-950/20">
+          <h2 class="text-xl font-bold text-slate-100">Generation mode</h2>
+          <p class="mt-1 text-sm text-slate-400">
+            Start from an uploaded sprite, or ask the model to invent a new sprite from your prompt.
+          </p>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              class="rounded-2xl border p-4 text-left transition"
+              :class="sourceMode === 'image'
+                ? 'border-cyan-500 bg-cyan-950/60 text-cyan-50'
+                : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500'"
+              @click="sourceMode = 'image'"
+            >
+              <span class="block text-sm font-bold">Transform source sprite</span>
+              <span class="mt-1 block text-xs text-slate-400">Upload an image and preserve its core identity.</span>
+            </button>
+            <button
+              type="button"
+              class="rounded-2xl border p-4 text-left transition"
+              :class="sourceMode === 'prompt'
+                ? 'border-cyan-500 bg-cyan-950/60 text-cyan-50'
+                : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500'"
+              @click="sourceMode = 'prompt'"
+            >
+              <span class="block text-sm font-bold">Create from prompt</span>
+              <span class="mt-1 block text-xs text-slate-400">Generate a brand new sprite concept with no upload.</span>
+            </button>
+          </div>
+        </section>
+
+        <SourceUploader v-if="sourceMode === 'image'" @uploaded="onUpload" />
 
         <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-cyan-950/20">
           <h2 class="text-xl font-bold text-slate-100">Generation settings</h2>
           <p class="mt-1 text-sm text-slate-400">
-            Describe the transformation and choose the style, size, and number of variants.
+            {{ settingsDescription }}
           </p>
 
           <div class="mt-6 grid gap-5 sm:grid-cols-2">
             <div class="sm:col-span-2 space-y-2">
-              <label class="text-sm font-semibold text-slate-100">Prompt</label>
+              <label class="text-sm font-semibold text-slate-100">{{ promptLabel }}</label>
               <textarea
                 v-model="userPrompt"
                 rows="3"
                 maxlength="2000"
-                placeholder="Describe the desired transformation..."
+                :placeholder="promptPlaceholder"
                 class="w-full resize-none rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-500"
               />
               <p class="text-xs text-slate-500">{{ userPrompt.length }}/2000</p>
+              <div v-if="sourceMode === 'prompt'" class="flex flex-wrap gap-2 text-xs">
+                <button
+                  v-for="example in promptExamples"
+                  :key="example"
+                  type="button"
+                  class="rounded-full border border-slate-700 bg-slate-950 px-3 py-1 text-slate-400 transition hover:border-cyan-700 hover:text-cyan-200"
+                  @click="userPrompt = example"
+                >
+                  {{ example }}
+                </button>
+              </div>
             </div>
 
             <StylePresetSelect
@@ -97,7 +139,7 @@
             <p v-if="!settings?.apiKeyConfigured" class="text-xs text-amber-300">
               OpenRouter API key is not configured.
             </p>
-            <p v-else-if="!uploadId" class="text-xs text-slate-500">
+            <p v-else-if="sourceMode === 'image' && !uploadId" class="text-xs text-slate-500">
               Upload a source image first.
             </p>
             <p v-else-if="!userPrompt.trim()" class="text-xs text-slate-500">
@@ -133,7 +175,7 @@
                 <div class="min-w-0">
                   <p class="truncate text-sm font-medium text-slate-100">{{ job.stylePresetId }}</p>
                   <p class="truncate text-xs text-slate-500">
-                    {{ job.status }} — {{ job.targetWidth }}x{{ job.targetHeight }}
+                    {{ sourceModeLabel(job.sourceMode) }} — {{ job.status }} — {{ job.targetWidth }}x{{ job.targetHeight }}
                   </p>
                 </div>
               </NuxtLink>
@@ -150,6 +192,7 @@ import type { GenerationJob, SettingsResponse, UploadRecord } from '~/types'
 
 const { data: settings } = await useFetch<SettingsResponse>('/api/settings')
 
+const sourceMode = ref<'image' | 'prompt'>('image')
 const uploadId = ref<string | null>(null)
 const userPrompt = ref('')
 const stylePresetId = ref('pixel-art')
@@ -161,6 +204,28 @@ const errorMessage = ref<string | null>(null)
 const currentJob = ref<GenerationJob | null>(null)
 const recentJobs = ref<GenerationJob[]>([])
 const resultsSection = ref<HTMLElement | null>(null)
+const promptExamples = [
+  'Tiny cyberpunk raccoon hacker with a glowing visor',
+  'Cute chibi fire mage cat holding a tiny staff',
+  '1-bit dungeon skeleton guard with a round shield',
+]
+
+const settingsDescription = computed(() => sourceMode.value === 'image'
+  ? 'Describe the transformation and choose the style, size, and number of variants.'
+  : 'Describe the new sprite concept and choose the style, size, and number of variants.',
+)
+
+const promptLabel = computed(() => sourceMode.value === 'image' ? 'Transformation prompt' : 'Sprite concept')
+const promptPlaceholder = computed(() => sourceMode.value === 'image'
+  ? 'Describe the desired transformation...'
+  : 'A tiny blue slime knight with a cracked helmet and glowing sword',
+)
+
+const isSourceReady = computed(() => {
+  if (sourceMode.value === 'prompt') return true
+
+  return Boolean(uploadId.value)
+})
 
 const pendingVariants = computed(() =>
   Array.from({ length: variantCount.value }, (_, index) => ({
@@ -175,7 +240,11 @@ const pendingVariants = computed(() =>
 )
 
 const canGenerate = computed(() => {
-  return uploadId.value && userPrompt.value.trim().length > 0 && settings.value?.apiKeyConfigured
+  if (!settings.value) return false
+  if (!settings.value.apiKeyConfigured) return false
+  if (!userPrompt.value.trim()) return false
+
+  return isSourceReady.value
 })
 
 function onUpload(upload: UploadRecord) {
@@ -184,16 +253,23 @@ function onUpload(upload: UploadRecord) {
 }
 
 function getPendingVariantDirection(index: number): string {
-  const directions = [
+  const imageDirections = [
     'Most faithful to the original silhouette.',
     'Slightly more stylized and expressive.',
     'Stronger game-ready pixel-art interpretation.',
-    'Alternate palette while preserving the subject.',
-    'More dramatic lighting and contrast.',
-    'Cleaner simplified low-detail sprite.',
   ]
+  const promptDirections = [
+    'Simple iconic interpretation with maximum readability.',
+    'More expressive characterful interpretation with distinct shape language.',
+    'Bolder game-ready interpretation with stronger stylization.',
+  ]
+  const directions = sourceMode.value === 'prompt' ? promptDirections : imageDirections
 
   return directions[index - 1] ?? 'Sprite variation in progress.'
+}
+
+function sourceModeLabel(mode: GenerationJob['sourceMode']) {
+  return mode === 'prompt' ? 'Prompt-created' : 'Source transform'
 }
 
 async function loadRecentJobs() {
@@ -222,7 +298,8 @@ async function generate() {
     const response = await $fetch<{ job: GenerationJob }>('/api/generation-jobs', {
       method: 'POST',
       body: {
-        uploadId: uploadId.value,
+        sourceMode: sourceMode.value,
+        uploadId: sourceMode.value === 'image' ? uploadId.value : undefined,
         userPrompt: userPrompt.value.trim(),
         stylePresetId: stylePresetId.value,
         targetWidth: targetSize.value,

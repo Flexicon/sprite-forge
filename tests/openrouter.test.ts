@@ -58,6 +58,31 @@ describe('OpenRouter image generation adapter', () => {
     })
   })
 
+  it('omits image content for prompt-only generation', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
+      id: 'response-prompt-only',
+      model: 'test/image-model',
+      created: 1,
+      choices: [{
+        finish_reason: 'stop',
+        message: {
+          role: 'assistant',
+          content: null,
+          images: ['data:image/png;base64,Z2VuZXJhdGVk'],
+        },
+      }],
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await generateImage({ ...requestParams, base64ImageDataUrl: undefined })
+    const [, request] = fetchMock.mock.calls[0]!
+    const body = JSON.parse((request as RequestInit).body as string)
+
+    expect(body.messages[0].content).toEqual([
+      { type: 'text', text: 'Make a sprite.' },
+    ])
+  })
+
   it('extracts a markdown-embedded image data URL from text content', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
       id: 'response-2',

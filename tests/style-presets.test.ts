@@ -9,6 +9,7 @@ import {
 } from '../server/services/style-presets'
 
 const baseJobInput = {
+  sourceMode: 'image',
   uploadId: '00000000-0000-4000-8000-000000000000',
   userPrompt: 'Make it RPG ready.',
   stylePresetId: 'pixel-art',
@@ -40,6 +41,21 @@ describe('style presets and generation input', () => {
     expect(parsed.backgroundMode).toBe('transparent')
   })
 
+  it('allows prompt-only jobs without an upload', () => {
+    const parsed = createGenerationJobSchema.parse({
+      ...baseJobInput,
+      sourceMode: 'prompt',
+      uploadId: undefined,
+    })
+
+    expect(parsed.sourceMode).toBe('prompt')
+    expect(parsed.uploadId).toBeUndefined()
+  })
+
+  it('requires an upload for image source jobs', () => {
+    expect(createGenerationJobSchema.safeParse({ ...baseJobInput, uploadId: undefined }).success).toBe(false)
+  })
+
   it('rejects unsupported target sizes and long prompts', () => {
     expect(createGenerationJobSchema.safeParse({ ...baseJobInput, targetWidth: 31 }).success).toBe(false)
     expect(createGenerationJobSchema.safeParse({ ...baseJobInput, targetHeight: 31 }).success).toBe(false)
@@ -48,6 +64,7 @@ describe('style presets and generation input', () => {
 
   it('returns variant directions for the requested count', () => {
     expect(getVariantDirections(1)).toEqual(['Variant 1: most faithful to the original silhouette.'])
+    expect(getVariantDirections(1, 'prompt')).toEqual(['Variant 1: simple iconic interpretation with maximum readability.'])
     expect(getVariantDirections(3)).toHaveLength(3)
   })
 
@@ -79,5 +96,22 @@ describe('style presets and generation input', () => {
 
     expect(prompt).toContain('Use a flat plain background with strong subject separation.')
     expect(prompt).not.toContain('real transparent alpha channel')
+  })
+
+  it('builds prompt-only creation prompts', () => {
+    const prompt = buildGenerationPrompt({
+      stylePreset: { id: 'cute-chibi', name: 'Cute Chibi', prompt: 'cute shapes' },
+      userPrompt: 'Tiny raccoon alchemist with a backpack.',
+      targetWidth: 48,
+      targetHeight: 48,
+      variantDirection: 'Variant 1: simple iconic interpretation with maximum readability.',
+      backgroundMode: 'transparent',
+      sourceMode: 'prompt',
+    })
+
+    expect(prompt).toContain('Create a brand new single 2D game sprite')
+    expect(prompt).toContain('Sprite concept:')
+    expect(prompt).toContain('Design an original sprite')
+    expect(prompt).not.toContain('Preserve the main subject identity and silhouette from the source image')
   })
 })

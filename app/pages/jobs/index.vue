@@ -33,7 +33,7 @@
                 >
                   {{ job.status }}
                 </span>
-                <span class="text-sm text-slate-500">{{ job.stylePresetId }}</span>
+                <span class="text-sm text-slate-500">{{ sourceModeLabel(job.sourceMode) }} — {{ job.stylePresetId }}</span>
               </div>
               <p class="mt-2 text-sm text-slate-300">
                 {{ job.targetWidth }}x{{ job.targetHeight }} — {{ job.variantCount }} variants
@@ -64,4 +64,8 @@ import { statusBadgeClass, formatDate } from '~/types'
 
 const { data: jobsData, pending, error } = await useFetch<{ jobs: GenerationJob[] }>('/api/generation-jobs')
 const jobs = computed(() => jobsData.value?.jobs ?? [])
+
+function sourceModeLabel(mode: GenerationJob['sourceMode']) {
+  return mode === 'prompt' ? 'Prompt-created' : 'Source transform'
+}
 </script>
