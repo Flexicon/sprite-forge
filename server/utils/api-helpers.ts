@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 
 import { db } from '../db/client'
-import { generationJobs, generatedVariants, uploads } from '../db/schema'
+import { generationJobs, generatedVariants, spriteEdits, uploads } from '../db/schema'
 
 export async function getJobById(id: string) {
   if (!id) {
@@ -50,4 +50,20 @@ export async function getVariantById(id: string) {
   }
 
   return variant
+}
+
+export async function getSpriteEditById(id: string) {
+  if (!id) {
+    throw createError({ statusCode: 400, statusMessage: 'Sprite edit ID is required.' })
+  }
+
+  const edit = await db.query.spriteEdits.findFirst({
+    where: eq(spriteEdits.id, id),
+  })
+
+  if (!edit) {
+    throw createError({ statusCode: 404, statusMessage: 'Sprite edit not found.' })
+  }
+
+  return edit
 }

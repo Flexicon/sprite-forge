@@ -21,6 +21,18 @@ export type ProcessImageOptions = {
   previewSize?: number
 }
 
+export type NormalizedSpriteEdit = {
+  buffer: Buffer
+  width: number
+  height: number
+}
+
+export type NormalizeSpriteEditOptions = {
+  data: Buffer
+  maxBytes?: number
+  maxDimension?: number
+}
+
 function isRemovableBackgroundPixel(data: Buffer, offset: number): boolean {
   const red = data[offset]!
   const green = data[offset + 1]!
@@ -130,6 +142,35 @@ export async function processGeneratedImage(options: ProcessImageOptions): Promi
     finalHeight: targetHeight,
     previewWidth: previewSize,
     previewHeight: previewSize,
+  }
+}
+
+export async function normalizeSpriteEdit(options: NormalizeSpriteEditOptions): Promise<NormalizedSpriteEdit> {
+  const { data, maxBytes = 10 * 1024 * 1024, maxDimension = 2048 } = options
+
+  if (data.byteLength > maxBytes) {
+    throw new Error('Edited PNG is too large. Maximum file size is 10 MB.')
+  }
+
+  const image = sharp(data, { failOn: 'warning' }).rotate().ensureAlpha()
+  const metadata = await image.metadata()
+
+  if (metadata.format !== 'png') {
+    throw new Error('Edited sprite must be a PNG image.')
+  }
+
+  if (!metadata.width || !metadata.height) {
+    throw new Error('Unable to determine edited sprite dimensions.')
+  }
+
+  if (metadata.width > maxDimension || metadata.height > maxDimension) {
+    throw new Error(`Edited sprite dimensions must be ${maxDimension}x${maxDimension} or smaller.`)
+  }
+
+  return {
+    buffer: await image.png().toBuffer(),
+    width: metadata.width,
+    height: metadata.height,
   }
 }
 

@@ -25,14 +25,23 @@
               <h2 class="text-xl font-bold text-slate-100">Canvas editor</h2>
               <p class="mt-1 text-sm text-slate-500">{{ sourceDescription }}</p>
             </div>
-            <button
-              v-if="canvasReady"
-              type="button"
-              class="rounded-full bg-cyan-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-200"
-              @click="downloadEditedPng"
-            >
-              Download edited PNG
-            </button>
+            <div v-if="canvasReady" class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                :disabled="isSavingEdit"
+                class="rounded-full bg-cyan-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                @click="saveEditedSprite"
+              >
+                {{ isSavingEdit ? 'Saving...' : 'Save copy' }}
+              </button>
+              <button
+                type="button"
+                class="rounded-full border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
+                @click="downloadEditedPng"
+              >
+                Download edited PNG
+              </button>
+            </div>
           </div>
 
           <div class="mt-6 flex min-h-[24rem] items-center justify-center overflow-auto rounded-2xl border border-slate-800 bg-slate-950 p-4">
@@ -68,6 +77,10 @@
           </div>
           <div v-if="editorMessage" class="mt-4 rounded-xl border border-cyan-900 bg-cyan-950/40 p-3 text-sm text-cyan-100">
             {{ editorMessage }}
+            <span v-if="savedEditId">
+              <NuxtLink :to="`/editor?editId=${savedEditId}`" class="ml-2 font-bold text-cyan-200 underline decoration-cyan-500/60 underline-offset-4">Open saved edit</NuxtLink>
+              <a :href="`/api/sprite-edits/${savedEditId}/download.png`" class="ml-2 font-bold text-cyan-200 underline decoration-cyan-500/60 underline-offset-4">Download saved PNG</a>
+            </span>
           </div>
 
           <dl v-if="imageUrl" class="mt-4 grid gap-3 rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-300 sm:grid-cols-3">
@@ -189,7 +202,7 @@
 </template>
 
 <script setup lang="ts">
-import type { UploadRecord } from '~/types'
+import type { SpriteEdit, UploadRecord } from '~/types'
 
 type EditorTool = 'pencil' | 'eraser' | 'eyedropper'
 type CanvasPoint = { x: number, y: number }
@@ -201,6 +214,7 @@ type CanvasPair = {
 }
 type VisibleCanvasPair = Pick<CanvasPair, 'backingCanvas' | 'visibleCanvas' | 'visibleContext'>
 type EditableElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+type SaveSource = { sourceType: 'variant' | 'upload' | 'edit', sourceId: string }
 
 const route = useRoute()
 const router = useRouter()
@@ -212,6 +226,8 @@ const naturalWidth = ref<number | null>(null)
 const naturalHeight = ref<number | null>(null)
 const canvasReady = ref(false)
 const isDrawing = ref(false)
+const isSavingEdit = ref(false)
+const savedEditId = ref('')
 const selectedColor = ref('#38bdf8')
 const activeTool = ref<EditorTool>('pencil')
 const brushSize = ref<1 | 2 | 4>(1)
@@ -235,28 +251,33 @@ const historyShortcutActions: Record<string, () => void> = {
 }
 const variantId = computed(() => getQueryValue(route.query.variantId))
 const uploadId = computed(() => getQueryValue(route.query.uploadId))
-const sourceKind = computed<'variant' | 'upload' | null>(() => {
+const editId = computed(() => getQueryValue(route.query.editId))
+const sourceKind = computed<'variant' | 'upload' | 'edit' | null>(() => {
   if (variantId.value) return 'variant'
   if (uploadId.value) return 'upload'
+  if (editId.value) return 'edit'
 
   return null
 })
-const sourceId = computed(() => variantId.value || uploadId.value || 'None')
+const sourceId = computed(() => variantId.value || uploadId.value || editId.value || 'None')
 const imageUrl = computed(() => {
   if (variantId.value) return `/api/variants/${variantId.value}/image.png`
   if (uploadId.value) return `/api/uploads/${uploadId.value}/image.png`
+  if (editId.value) return `/api/sprite-edits/${editId.value}/image.png`
 
   return ''
 })
 const sourceTypeLabel = computed(() => {
   if (sourceKind.value === 'variant') return 'Generated variant'
   if (sourceKind.value === 'upload') return 'Direct upload'
+  if (sourceKind.value === 'edit') return 'Saved edit'
 
   return 'None'
 })
 const sourceDescription = computed(() => {
   if (sourceKind.value === 'variant') return 'Loaded from a completed generated variant.'
   if (sourceKind.value === 'upload') return 'Loaded from a direct image upload.'
+  if (sourceKind.value === 'edit') return 'Loaded from a saved edited sprite.'
 
   return 'Choose a sprite to begin.'
 })
@@ -317,6 +338,8 @@ function resetImageState() {
   naturalHeight.value = null
   canvasReady.value = false
   isDrawing.value = false
+  isSavingEdit.value = false
+  savedEditId.value = ''
   undoStack.value = []
   redoStack.value = []
 }
@@ -666,6 +689,65 @@ function downloadEditedPng() {
     link.click()
     URL.revokeObjectURL(objectUrl)
   }, 'image/png')
+}
+
+function canvasToPngBlob(canvas: HTMLCanvasElement) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob)
+      else reject(new Error('Failed to export the edited PNG.'))
+    }, 'image/png')
+  })
+}
+
+async function saveEditedSprite() {
+  const backingCanvas = editCanvas.value
+  const saveSource = getSaveSource()
+
+  if (!backingCanvas || !saveSource) return
+  isSavingEdit.value = true
+  imageError.value = ''
+  editorMessage.value = ''
+  savedEditId.value = ''
+
+  try {
+    const blob = await canvasToPngBlob(backingCanvas)
+    const form = new FormData()
+    form.append('sourceType', saveSource.sourceType)
+    form.append('sourceId', saveSource.sourceId)
+    form.append('file', blob, `sprite-forge-edited-${saveSource.sourceId}.png`)
+
+    const response = await $fetch<{ edit: SpriteEdit }>('/api/sprite-edits', {
+      method: 'POST',
+      body: form,
+    })
+
+    savedEditId.value = response.edit.id
+    editorMessage.value = `Saved edited sprite (${response.edit.width}x${response.edit.height}).`
+  }
+  catch (error) {
+    imageError.value = getSaveErrorMessage(error)
+  }
+  finally {
+    isSavingEdit.value = false
+  }
+}
+
+function getSaveSource(): SaveSource | null {
+  const currentSourceKind = sourceKind.value
+  const currentSourceId = sourceId.value
+
+  return currentSourceKind && currentSourceId !== 'None'
+    ? { sourceType: currentSourceKind, sourceId: currentSourceId }
+    : null
+}
+
+function getSaveErrorMessage(error: unknown) {
+  const statusMessage = (error as { statusMessage?: unknown } | null)?.statusMessage
+
+  return typeof statusMessage === 'string'
+    ? statusMessage
+    : error instanceof Error ? error.message : 'Failed to save the edited sprite.'
 }
 
 async function onUpload(upload: UploadRecord) {

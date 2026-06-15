@@ -1,15 +1,21 @@
 import { relations, sql } from 'drizzle-orm'
 import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
 
+function imageFileColumns() {
+  return {
+    width: integer('width').notNull(),
+    height: integer('height').notNull(),
+    storagePath: text('storage_path').notNull(),
+    createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  }
+}
+
 export const uploads = sqliteTable('uploads', {
   id: text('id').primaryKey(),
   originalFilename: text('original_filename').notNull(),
   mimeType: text('mime_type').notNull(),
   sizeBytes: integer('size_bytes').notNull(),
-  width: integer('width').notNull(),
-  height: integer('height').notNull(),
-  storagePath: text('storage_path').notNull(),
-  createdAt: text('created_at').notNull().default(sql`CURRENT_TIMESTAMP`),
+  ...imageFileColumns(),
 })
 
 export const generationJobs = sqliteTable('generation_jobs', {
@@ -55,6 +61,16 @@ export const generatedVariants = sqliteTable('generated_variants', {
   index('generated_variants_variant_index_idx').on(table.jobId, table.variantIndex),
 ])
 
+export const spriteEdits = sqliteTable('sprite_edits', {
+  id: text('id').primaryKey(),
+  sourceType: text('source_type', { enum: ['variant', 'upload', 'edit'] }).notNull(),
+  sourceId: text('source_id').notNull(),
+  ...imageFileColumns(),
+}, (table) => [
+  index('sprite_edits_source_idx').on(table.sourceType, table.sourceId),
+  index('sprite_edits_created_at_idx').on(table.createdAt),
+])
+
 export const uploadsRelations = relations(uploads, ({ many }) => ({
   jobs: many(generationJobs),
 }))
@@ -80,3 +96,5 @@ export type GenerationJob = typeof generationJobs.$inferSelect
 export type NewGenerationJob = typeof generationJobs.$inferInsert
 export type GeneratedVariant = typeof generatedVariants.$inferSelect
 export type NewGeneratedVariant = typeof generatedVariants.$inferInsert
+export type SpriteEdit = typeof spriteEdits.$inferSelect
+export type NewSpriteEdit = typeof spriteEdits.$inferInsert

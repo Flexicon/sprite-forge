@@ -3,7 +3,7 @@ import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 
 const DEFAULT_STORAGE_DIR = './data/storage'
-const STORAGE_DIRECTORIES = ['uploads', 'jobs'] as const
+const STORAGE_DIRECTORIES = ['uploads', 'jobs', 'edits'] as const
 
 function getConfiguredStorageDir() {
   try {
@@ -121,6 +121,10 @@ function jobStoragePath(jobId: string, ...segments: string[]) {
   return assertSafeRelativePath(['jobs', jobId, ...segments].join('/'))
 }
 
+function editStoragePath(editId: string) {
+  return assertSafeRelativePath(`edits/${editId}.png`)
+}
+
 async function checkStorageHealth() {
   const { root, directories } = await ensureStorageDirectories()
   const probePath = `uploads/.health-${crypto.randomUUID()}.tmp`
@@ -151,5 +155,6 @@ export const storage = {
   exists: storageFileExists,
   uploadPath: uploadStoragePath,
   jobPath: jobStoragePath,
+  editPath: editStoragePath,
   checkHealth: checkStorageHealth,
 }

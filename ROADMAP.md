@@ -152,7 +152,7 @@ Make small pixel edits comfortable enough for real use.
 
 ## Phase 4 - Persist Edited Sprites
 
-Status: pending
+Status: completed
 
 ### Goal
 

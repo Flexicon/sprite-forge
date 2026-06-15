@@ -19,6 +19,16 @@ export type Variant = {
   errorMessage: string | null
 }
 
+export type SpriteEdit = {
+  id: string
+  sourceType: 'variant' | 'upload' | 'edit'
+  sourceId: string
+  width: number
+  height: number
+  storagePath: string
+  createdAt: string
+}
+
 export type GenerationJob = {
   id: string
   uploadId: string | null
