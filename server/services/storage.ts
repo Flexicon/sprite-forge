@@ -107,6 +107,12 @@ async function storageFileExists(path: string) {
   }
 }
 
+async function removeStoragePath(path: string) {
+  await ensureStorageDirectories()
+
+  await rm(resolveStoragePath(path), { recursive: true, force: true })
+}
+
 function uploadStoragePath(uploadId: string) {
   return assertSafeRelativePath(`uploads/${uploadId}.png`)
 }
@@ -141,6 +147,7 @@ export const storage = {
   ensureDirectories: ensureStorageDirectories,
   writeFile: writeStorageFile,
   readFile: readStorageFile,
+  remove: removeStoragePath,
   exists: storageFileExists,
   uploadPath: uploadStoragePath,
   jobPath: jobStoragePath,

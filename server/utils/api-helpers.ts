@@ -10,7 +10,7 @@ export async function getJobById(id: string) {
 
   const job = await db.query.generationJobs.findFirst({
     where: eq(generationJobs.id, id),
-    with: { variants: true },
+    with: { variants: true, upload: true },
   })
 
   if (!job) {
