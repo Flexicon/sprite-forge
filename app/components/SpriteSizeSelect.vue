@@ -2,7 +2,7 @@
 defineProps<{
   sizes: number[]
   modelValue: number
-  label: string
+  label?: string
 }>()
 
 const emit = defineEmits<{
@@ -17,7 +17,7 @@ function onChange(event: Event) {
 
 <template>
   <div class="space-y-2">
-    <label class="text-sm font-semibold text-slate-100">{{ label }}</label>
+    <label class="text-sm font-semibold text-slate-100">{{ label ?? 'Sprite size' }}</label>
     <select
       :value="modelValue"
       class="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-500"

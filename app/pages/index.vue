@@ -43,18 +43,10 @@
               :presets="settings?.stylePresets ?? []"
             />
 
-            <div class="grid grid-cols-2 gap-3">
-              <SpriteSizeSelect
-                v-model="targetWidth"
-                :sizes="settings?.supportedSizes ?? []"
-                label="Width"
-              />
-              <SpriteSizeSelect
-                v-model="targetHeight"
-                :sizes="settings?.supportedSizes ?? []"
-                label="Height"
-              />
-            </div>
+            <SpriteSizeSelect
+              v-model="targetSize"
+              :sizes="settings?.supportedSizes ?? []"
+            />
 
             <VariantCountSelect v-model="variantCount" />
 
@@ -161,8 +153,7 @@ const { data: settings } = await useFetch<SettingsResponse>('/api/settings')
 const uploadId = ref<string | null>(null)
 const userPrompt = ref('')
 const stylePresetId = ref('pixel-art')
-const targetWidth = ref(32)
-const targetHeight = ref(32)
+const targetSize = ref(32)
 const variantCount = ref(2)
 const backgroundMode = ref<'transparent' | 'plain'>('transparent')
 const isGenerating = ref(false)
@@ -234,8 +225,8 @@ async function generate() {
         uploadId: uploadId.value,
         userPrompt: userPrompt.value.trim(),
         stylePresetId: stylePresetId.value,
-        targetWidth: targetWidth.value,
-        targetHeight: targetHeight.value,
+        targetWidth: targetSize.value,
+        targetHeight: targetSize.value,
         variantCount: variantCount.value,
         backgroundMode: backgroundMode.value,
       },
