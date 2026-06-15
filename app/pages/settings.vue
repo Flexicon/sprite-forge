@@ -1,21 +1,11 @@
 <template>
-  <main class="min-h-screen bg-slate-950 text-slate-100">
-    <section class="mx-auto w-full max-w-3xl px-6 py-10 sm:py-16">
-      <nav class="mb-10 flex items-center justify-between gap-4">
-        <div>
-          <NuxtLink to="/" class="text-sm font-semibold uppercase tracking-[0.35em] text-cyan-300">Sprite Forge</NuxtLink>
-          <h1 class="mt-2 text-3xl font-black tracking-tight">Settings</h1>
-        </div>
-        <NuxtLink to="/" class="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
-          Back to workspace
-        </NuxtLink>
-      </nav>
+  <AppShell title="Settings">
 
-      <div v-if="pending" class="text-sm text-slate-500">Loading settings...</div>
-      <div v-else-if="error" class="rounded-xl border border-red-800 bg-red-950/60 p-4 text-sm text-red-200">
+      <div v-if="pending" class="max-w-3xl text-sm text-slate-500">Loading settings...</div>
+      <div v-else-if="error" class="max-w-3xl rounded-xl border border-red-800 bg-red-950/60 p-4 text-sm text-red-200">
         Failed to load settings.
       </div>
-      <div v-else-if="settings" class="space-y-6">
+      <div v-else-if="settings" class="max-w-3xl space-y-6">
         <div class="rounded-2xl border border-slate-800 bg-slate-900/80 p-6">
           <h2 class="text-lg font-bold text-slate-100">OpenRouter</h2>
           <div class="mt-4 space-y-3 text-sm">
@@ -80,8 +70,7 @@
           </div>
         </div>
       </div>
-    </section>
-  </main>
+  </AppShell>
 </template>
 
 <script setup lang="ts">

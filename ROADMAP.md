@@ -1,603 +1,272 @@
-# ROADMAP.md
-
 # Sprite Forge Roadmap
 
 ## Product Goal
 
-Create a self-hosted Nuxt app that converts uploaded 2D sprite images into 1-3 generated sprite variants using OpenRouter image models, then post-processes the results into clean PNG assets suitable for game development.
+Sprite Forge is a local-first Nuxt app for generating, processing, reviewing, and exporting 2D game sprites. The MVP uses OpenRouter image models to create 1-3 sprite variants, Sharp to normalize outputs into clean PNG assets, SQLite for local metadata, and local filesystem storage for uploads and generated images.
 
-The initial target is still-image sprite generation. Sprite sheets, animation, palette tools, and batch workflows come later.
+The next product goal is to add a simple built-in pixel editor so generated sprites can be lightly touched up without leaving the app.
+
+## Current MVP Summary
+
+Status: completed
+
+The app currently supports:
+
+* Uploading PNG, JPEG, and WebP source images.
+* Creating new sprites from either an uploaded source image or a prompt-only workflow.
+* Entering a freeform prompt.
+* Choosing a style preset.
+* Choosing a target sprite size.
+* Choosing 1, 2, or 3 variants, with 2 as the default.
+* Generating each variant through a separate OpenRouter image request.
+* Persisting uploads, generation jobs, and generated variants in SQLite.
+* Storing binary image files on the local filesystem.
+* Processing generated images with Sharp into final target-size PNG files.
+* Creating larger pixelated preview PNGs for inspection in the UI.
+* Browsing generation history after restart.
+* Viewing job details, source image, prompt/settings, status, errors, and generated variants.
+* Downloading individual generated sprites as PNG.
+* Downloading all completed variants for a job as a ZIP with metadata.
+* Viewing local settings and diagnostics.
+* Running basic tests for critical utility and processing behavior.
 
 ## Guiding Constraints
 
-* Local-first.
-* No auth.
-* No cloud storage.
-* No SaaS assumptions.
-* SQLite only.
-* Filesystem image storage.
-* OpenRouter for generation.
-* Sharp for final asset processing.
-* Simple UI over polished UI.
-* Real PNG output over pretty previews.
-* One uploaded source image per generation job in MVP.
-* One generated sprite per model call.
+* Keep the app local-first.
+* Do not add auth, billing, cloud storage, Redis, queues, or SaaS assumptions.
+* Keep generated outputs immutable unless there is an explicit overwrite feature later.
+* Prefer small vertical slices over broad abstractions.
+* Prefer plain Vue and browser APIs before adding editor libraries.
+* Preserve real PNG outputs over UI-only previews.
 
-## Phase 0 — Project Bootstrap
+## Sprite Editor Scope
 
-Status: completed
+The editor should solve one concrete problem: fixing a few stray pixels after generation.
 
-### Goal
+Initial editor features:
 
-Create a runnable Nuxt + TypeScript project with the basic local development foundation.
+* Open a completed generated variant.
+* Open a direct image upload.
+* Pencil tool.
+* Eraser tool for transparent pixels.
+* Eyedropper tool.
+* Color picker.
+* Small brush sizes, likely 1, 2, and 4 pixels.
+* Undo and redo.
+* Zoom controls.
+* Grid toggle.
+* Transparency checkerboard.
+* Download edited PNG.
+* Save edited copy locally.
 
-### Tasks
+Out of scope for the first editor pass:
 
-* Create Nuxt project.
-* Add TypeScript strict mode.
-* Add pnpm scripts.
-* Add Tailwind CSS if not already present.
-* Add ESLint.
-* Add runtime config.
-* Add environment variable validation.
-* Add `/data` directory convention.
-* Add basic home page shell.
-* Add README setup notes.
+* Layers.
+* Selection tools.
+* Flood fill.
+* Animation frames.
+* Tilemaps.
+* Sprite sheets.
+* Palette file management.
+* Advanced transforms.
+* Replacing original generated files by default.
 
-### Required scripts
-
-```bash
-pnpm dev
-pnpm build
-pnpm start
-pnpm lint
-pnpm typecheck
-```
-
-### Acceptance Criteria
-
-* `pnpm install` works.
-* `pnpm dev` starts the app.
-* App renders a basic page.
-* Missing `OPENROUTER_API_KEY` is reported clearly when generation is attempted, not during unrelated browsing.
-
-## Phase 1 — SQLite + Drizzle
+## Phase 1 - Editor Page Shell
 
 Status: completed
 
 ### Goal
 
-Persist uploads, generation jobs, and generated variants.
+Add a dedicated `/editor` page and make it easy to reach from the existing app.
 
 ### Tasks
 
-* Install Drizzle.
-* Configure SQLite.
-* Add schema.
-* Add migrations.
-* Add database client.
-* Add migration command.
-* Add simple database health check.
-
-### Tables
-
-* `uploads`
-* `generation_jobs`
-* `generated_variants`
-
-### Commands
-
-```bash
-pnpm db:generate
-pnpm db:migrate
-pnpm db:studio
-```
+* Add an `Editor` nav link next to workspace, history, and settings links.
+* Create `/editor` page.
+* Support opening a generated variant with `variantId` query param.
+* Support opening an upload with `uploadId` query param.
+* Load generated variant images from `/api/variants/:id/image.png`.
+* Load upload images from `/api/uploads/:id/image.png`.
+* Show an empty state with direct upload affordance when no image is selected.
+* Add an `Edit` button for completed generated variants.
 
 ### Acceptance Criteria
 
-* Database file is created under `data/`.
-* Migrations run cleanly.
-* App can insert and read a test row during development.
-* Schema matches the entities in `AGENTS.md`.
+* User can navigate to `/editor` from the main app.
+* User can click `Edit` from a completed generated variant and see that sprite in the editor.
+* User can upload an image directly on the editor page and see it loaded.
+* The source image is shown pixelated and sized for inspection.
 
-## Phase 2 — Local Storage Service
+## Phase 2 - Canvas Editing MVP
 
-Status: completed
+Status: next
 
 ### Goal
 
-Create predictable local filesystem storage for uploads and generated images.
+Implement the minimum useful pixel-touchup workflow in the browser.
 
 ### Tasks
 
-* Implement `server/services/storage.ts`.
-* Resolve `STORAGE_DIR`.
-* Ensure directories exist on boot or first write.
-* Add safe path helpers.
-* Prevent path traversal.
-* Add helper for writing buffers.
-* Add helper for reading files.
-* Add helper for checking file existence.
-
-### Storage Layout
-
-```txt
-data/storage/
-  uploads/
-  jobs/
-```
+* Render the loaded image into an editable canvas.
+* Keep editable image data at natural sprite dimensions.
+* Render a scaled pixelated preview canvas.
+* Map pointer coordinates to sprite pixel coordinates.
+* Add pencil tool.
+* Add eraser tool that writes transparent pixels.
+* Add eyedropper tool.
+* Add color picker.
+* Add brush size selector.
+* Add PNG download from the edited canvas.
 
 ### Acceptance Criteria
 
-* App can write and read an uploaded file.
-* Storage paths saved in SQLite are relative paths.
-* API never accepts arbitrary filesystem paths from the client.
-
-## Phase 3 — Upload Flow
-
-Status: completed
-
-### Goal
-
-Allow users to upload a source image and preview it.
-
-### Tasks
-
-* Implement `POST /api/uploads`.
-* Implement `GET /api/uploads/:id`.
-* Validate file type.
-* Validate file size.
-* Extract image metadata with Sharp.
-* Store the original image.
-* Normalize upload to PNG if useful.
-* Create upload record in SQLite.
-* Build `SourceUploader.vue`.
-* Show source preview in UI.
-
-### Supported Types
-
-```txt
-image/png
-image/jpeg
-image/webp
-```
-
-### Acceptance Criteria
-
-* User can upload PNG/JPEG/WebP.
-* User sees preview after upload.
-* Upload metadata is persisted.
-* Invalid files produce readable errors.
-
-## Phase 4 — Style Presets + Prompt Builder
-
-Status: completed
-
-### Goal
-
-Create deterministic prompt construction before touching OpenRouter generation.
-
-### Tasks
-
-* Add `server/services/style-presets.ts`.
-* Add style preset list.
-* Add prompt builder.
-* Add variant direction builder.
-* Add Zod validation for generation inputs.
-* Add unit tests for prompt output.
-
-### Initial Presets
-
-* Pixel Art
-* SNES RPG
-* GBA RPG
-* Dark Fantasy
-* Cute Chibi
-* 1-bit Monochrome
-
-### Acceptance Criteria
-
-* Prompt builder returns stable structured text.
-* Each variant receives a different variant direction.
-* Invalid style preset IDs are rejected.
-
-## Phase 5 — OpenRouter Service
-
-Status: completed
-
-### Goal
-
-Generate one image from one uploaded image and one prompt.
-
-### Tasks
-
-* Implement `server/services/openrouter.ts`.
-* Read `OPENROUTER_API_KEY` from server runtime config.
-* Read `OPENROUTER_DEFAULT_MODEL`.
-* Convert uploaded image to base64 data URL.
-* Send image + prompt to OpenRouter.
-* Request image output using `modalities: ["image", "text"]`.
-* Parse returned image data URL.
-* Store raw response metadata for debugging.
-* Add clear error types.
-
-### Default Model
-
-```txt
-google/gemini-2.5-flash-image
-```
-
-### Optional Model Override
-
-Support model override through env:
-
-```env
-OPENROUTER_DEFAULT_MODEL=google/gemini-2.5-flash-image
-```
-
-### Acceptance Criteria
-
-* Service can generate a single image from a source upload.
-* Missing API key error is clear.
-* No API key is exposed to client code.
-* No generated image response is treated as failure.
-* Raw model response metadata can be persisted.
-
-## Phase 6 — Sharp Post-Processing
-
-Status: completed
-
-### Goal
-
-Convert generated model output into real game-asset PNG files.
-
-### Tasks
-
-* Implement `server/services/image-processing.ts`.
-* Decode generated data URLs.
-* Normalize to PNG.
-* Resize final sprite to target dimensions.
-* Use transparent padding.
-* Use nearest-neighbor resizing for pixel-art-like presets.
-* Generate large preview image.
-* Store raw generated image.
-* Store final sprite PNG.
-* Store preview PNG.
-
-### Final Sprite Rules
-
-* Final PNG dimensions must exactly match selected target width and height.
-* Preserve alpha when available.
-* Use transparent background for padding.
-* Do not upscale final output beyond target dimensions.
-* Preview output may be upscaled.
-
-### Acceptance Criteria
-
-* Given any generated image, app creates:
-
-  * raw PNG
-  * final target-size PNG
-  * preview PNG
-* Final PNG dimensions are correct.
-* Preview is large enough to inspect in UI.
-
-## Phase 7 — Generation Job Endpoint
-
-Status: completed
-
-### Goal
-
-Generate 1-3 sprite variants from one uploaded image, defaulting to 2 variants in the UI.
-
-### Tasks
-
-* Implement `POST /api/generation-jobs`.
-* Validate input.
-* Create generation job record.
-* Mark job as running.
-* Generate variants sequentially first.
-* Persist each variant result.
-* Mark job completed or failed.
-* Return full job payload.
-
-### Why Sequential First
-
-Parallel generation can come later. Sequential execution is easier to debug and avoids rate-limit ambiguity during MVP development.
-
-### Input Shape
-
-```ts
-type CreateGenerationJobInput = {
-  uploadId: string;
-  userPrompt: string;
-  stylePresetId: string;
-  targetWidth: number;
-  targetHeight: number;
-  variantCount: 1 | 2 | 3;
-  backgroundMode: "transparent" | "plain";
-};
-```
-
-### Acceptance Criteria
-
-* Endpoint creates one job.
-* Endpoint generates requested number of variants.
-* Variant failures are recorded.
-* Successful variants remain available even if one variant fails.
-* Job status is accurate.
-* Response includes generated variant IDs and preview URLs.
-
-## Phase 8 — Main Generation UI
-
-Status: completed
-
-### Goal
-
-Make the app usable from the browser.
-
-### Tasks
-
-* Build main page layout.
-* Add upload widget.
-* Add prompt textarea.
-* Add style preset selector.
-* Add target size selector.
-* Add variant count selector.
-* Add generate button.
-* Add loading state.
-* Add error display.
-* Add generated variants grid.
-* Add per-variant download button.
-* Add access to job detail pages through recent jobs/history navigation.
-
-### Acceptance Criteria
-
-* User can complete the full upload → generate → preview → download loop from `/`.
-* UI handles slow generation without appearing broken.
-* Errors are visible and useful.
-
-## Phase 9 — Image Serving + Downloads
-
-Status: completed
-
-### Goal
-
-Serve generated assets back to the browser and support exports.
-
-### Tasks
-
-* Implement `GET /api/variants/:id/image.png`.
-* Implement `GET /api/variants/:id/preview.png`.
-* Implement `GET /api/variants/:id/download.png`.
-* Implement `GET /api/generation-jobs/:id/download.zip`.
-* Add ZIP generation service.
-* Include useful filenames in downloads.
-
-### Filename Format
-
-```txt
-sprite-forge-{jobId}-variant-{index}-{width}x{height}.png
-```
-
-ZIP format:
-
-```txt
-sprite-forge-{jobId}.zip
-```
-
-ZIP contents:
-
-```txt
-variant-1.png
-variant-2.png
-variant-3.png
-metadata.json
-```
-
-### Acceptance Criteria
-
-* Individual PNG download works.
-* ZIP download works.
-* ZIP contains all completed variants.
-* ZIP contains metadata JSON.
-* Failed variants are excluded from ZIP but listed in metadata.
-
-## Phase 10 — Job History
-
-Status: completed
-
-### Goal
-
-Allow users to view previous local generations.
-
-### Tasks
-
-* Implement `GET /api/generation-jobs`.
-* Implement `GET /api/generation-jobs/:id`.
-* Build `/jobs`.
-* Build `/jobs/[id]`.
-* Show source image.
-* Show prompt/settings.
-* Show generated variants.
-* Show status and errors.
-* Show download buttons.
-
-### Acceptance Criteria
-
-* Restarting the app does not lose job history.
-* User can browse old jobs.
-* User can download old variants.
-* Failed jobs are inspectable.
-
-## Phase 11 — Settings Page
-
-Status: completed
-
-### Goal
-
-Expose simple local diagnostics and defaults.
-
-### Tasks
-
-* Implement `GET /api/settings`.
-* Build `/settings`.
-* Show configured model.
-* Show storage path.
-* Show database path.
-* Show whether OpenRouter API key is configured.
-* Show supported output sizes.
-* Show available style presets.
-
-### Acceptance Criteria
-
-* User can verify local configuration from the browser.
-* API key value is never displayed.
-* Settings page helps diagnose common local setup issues.
-
-## Phase 12 — Basic Tests
-
-Status: completed
-
-### Goal
-
-Protect the most failure-prone utility code.
-
-### Tasks
-
-Add tests for:
-
-* Data URL parsing.
-* Prompt building.
-* Style preset lookup.
-* Generation input validation.
-* Sharp output dimensions.
-* ZIP export contents.
-* Storage path safety.
-
-### Acceptance Criteria
-
-* Tests run with one command.
-* Tests do not require OpenRouter API access.
-* Tests do not depend on external network access.
-
-## Phase 13 — README Polish
+* User can change individual pixels accurately.
+* User can erase to transparency.
+* User can sample a color from the sprite.
+* User can download the edited image as a PNG.
+* Downloaded PNG keeps the source image dimensions.
+
+## Phase 3 - Editor Ergonomics
 
 Status: pending
 
 ### Goal
 
-Make the project easy to start on the local server.
+Make small pixel edits comfortable enough for real use.
 
 ### Tasks
 
-Document:
-
-* Requirements.
-* Installation.
-* Environment variables.
-* Database migration.
-* Running dev server.
-* Running production build.
-* Storage directory.
-* OpenRouter model config.
-* Known limitations.
-* Troubleshooting.
-
-### Minimum Setup Docs
-
-```bash
-pnpm install
-cp .env.example .env
-pnpm db:migrate
-pnpm dev
-```
+* Add undo and redo with a bounded history.
+* Add zoom controls.
+* Add grid toggle.
+* Add transparency checkerboard behind the canvas.
+* Add visible current tool/color/brush status.
+* Add basic keyboard shortcuts if they stay simple.
 
 ### Acceptance Criteria
 
-* A fresh checkout can be configured from README alone.
-* Required environment variables are documented.
-* Common errors are explained.
+* User can recover from accidental edits with undo.
+* User can zoom in far enough for 16x16 and 32x32 sprites.
+* Grid and checkerboard make transparent and individual pixels clear.
+* Editing still works on desktop and narrow screens.
 
-## Post-MVP Ideas
+## Phase 4 - Persist Edited Sprites
 
-Do not implement these before the MVP is working.
+Status: pending
 
-### Sprite Sheets
+### Goal
 
-* Generate walking cycles.
-* Generate idle animations.
-* Export horizontal sprite strips.
-* Export grid sprite sheets.
-* Export Aseprite-compatible metadata JSON.
+Save edited sprites locally without mutating the original generated variant or upload.
 
-### Palette Tools
+### Data Model
 
+Add a `sprite_edits` table:
+
+```txt
+id
+source_type: variant | upload | edit
+source_id
+width
+height
+storage_path
+created_at
+```
+
+### Storage Layout
+
+```txt
+data/storage/
+  edits/
+    {editId}.png
+```
+
+### API Routes
+
+```txt
+POST /api/sprite-edits
+GET  /api/sprite-edits
+GET  /api/sprite-edits/:id
+GET  /api/sprite-edits/:id/image.png
+GET  /api/sprite-edits/:id/download.png
+```
+
+### Tasks
+
+* Add Drizzle schema and migration for `sprite_edits`.
+* Add storage helper for edit paths.
+* Add server-side PNG validation and normalization with Sharp.
+* Enforce a reasonable maximum editable image size.
+* Save edited PNG files under `edits/`.
+* Insert edit metadata in SQLite.
+* Add save action in the editor UI.
+* Add download endpoint with useful filename.
+
+### Acceptance Criteria
+
+* Saving creates a new edited artifact.
+* Saving never overwrites the source upload or generated variant.
+* Saved edits survive app restart.
+* Saved edits can be reopened and downloaded.
+* Invalid edited image payloads produce clear errors.
+
+## Phase 5 - Saved Edits Library
+
+Status: pending
+
+### Goal
+
+Make saved edits discoverable and reusable.
+
+### Tasks
+
+* Show recent saved edits on `/editor`.
+* Add `Open` and `Download` actions for saved edits.
+* Consider showing saved edits on the related job detail page when the source is a variant.
+* Consider adding a lightweight `/edits` or history filter only if `/editor` becomes crowded.
+
+### Acceptance Criteria
+
+* User can find recently saved edits without remembering file paths.
+* User can reopen a saved edit for more touchup work.
+* User can download saved edits from the UI.
+
+## Phase 6 - Polish And Tests
+
+Status: pending
+
+### Goal
+
+Harden the editor enough for regular local use.
+
+### Tasks
+
+* Add tests for server-side edited PNG validation.
+* Add tests for `sprite_edits` insert/read behavior where practical.
+* Add tests for edit storage path safety.
+* Verify typecheck, lint, and test commands.
+* Document the editor workflow in README.
+* Revisit whether a shared app nav component is worthwhile after editor navigation exists.
+
+### Acceptance Criteria
+
+* `pnpm typecheck` passes.
+* `pnpm lint` passes.
+* `pnpm test` passes.
+* README explains how generated sprites can be edited and saved.
+
+## Later Ideas
+
+Do not implement these before the simple editor is useful.
+
+* Replace generated variant final PNG intentionally, with confirmation.
 * Palette reduction.
-* User-defined palette.
-* DawnBringer palette presets.
-* Game Boy palette presets.
-* NES-like palette constraints.
-
-### Better Background Handling
-
-* Automatic background removal.
-* Chroma-key cleanup.
-* Alpha matte cleanup.
-* Manual background color picker.
-
-### Better Pixel Art Processing
-
-* Pixel clustering.
-* Dithering modes.
-* Outline cleanup.
-* Stray pixel cleanup.
-* Optional indexed PNG export.
-
-### Batch Mode
-
-* Upload multiple source sprites.
-* Apply same prompt/settings to all.
-* Batch ZIP export.
-
-### Model Comparison Mode
-
-* Generate same prompt across multiple OpenRouter models.
-* Compare Nano Banana, Nano Banana Pro, Seedream, Recraft, and other image models.
-* Save model preference per style preset.
-
-### Local Worker
-
-* Move generation to a background worker.
-* Add progress updates.
-* Add cancellation.
-* Add retry behavior.
-* Add rate-limit backoff.
-
-### Project Library
-
-* Tag jobs.
-* Favorite variants.
-* Rename outputs.
-* Add notes.
-* Delete old jobs and files.
-
-## MVP Definition of Done
-
-MVP is done when this works:
-
-1. Start app locally.
-2. Upload a source sprite.
-3. Enter prompt.
-4. Choose style preset.
-5. Choose target size.
-6. Choose 1-3 variants, with 2 selected by default.
-7. Generate through OpenRouter.
-8. See generated previews.
-9. Download individual PNG.
-10. Download ZIP of all completed variants.
-11. Restart app.
-12. View previous job history.
-13. Download old outputs.
-
-Anything beyond that is post-MVP.
+* User-defined palettes.
+* Flood fill.
+* Selection and move tools.
+* Resize or crop tools.
+* Sprite sheet export.
+* Animation frames.
+* Batch editing.
+* Model comparison mode.
+* Background generation worker.
+* Favorites, tags, notes, and project-library organization.

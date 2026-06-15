@@ -1,20 +1,5 @@
 <template>
-  <main class="min-h-screen bg-slate-950 text-slate-100">
-    <section class="mx-auto flex min-h-screen w-full max-w-6xl flex-col px-6 py-10 sm:py-16">
-      <nav class="mb-12 flex items-center justify-between gap-4">
-        <div>
-          <p class="text-sm font-semibold uppercase tracking-[0.35em] text-cyan-300">Local Sprite Lab</p>
-          <h1 class="mt-3 text-4xl font-black tracking-tight sm:text-6xl">Sprite Forge</h1>
-        </div>
-        <div class="flex items-center gap-3">
-          <NuxtLink to="/jobs" class="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
-            History
-          </NuxtLink>
-          <NuxtLink to="/settings" class="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
-            Settings
-          </NuxtLink>
-        </div>
-      </nav>
+  <AppShell title="Sprite Forge" eyebrow="local sprite lab">
 
       <div class="space-y-6">
         <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-cyan-950/20">
@@ -183,8 +168,7 @@
           </ul>
         </div>
       </div>
-    </section>
-  </main>
+  </AppShell>
 </template>
 
 <script setup lang="ts">

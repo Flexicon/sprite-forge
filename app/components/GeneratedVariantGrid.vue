@@ -89,14 +89,21 @@ const failedVariants = computed(() =>
             <p class="text-sm font-semibold text-slate-100">Variant {{ variant.variantIndex }}</p>
             <p class="truncate text-xs text-slate-500">{{ variant.variantDirection }}</p>
           </div>
-          <a
-            v-if="variant.status === 'completed'"
-            :href="getDownloadUrl(variant.id)"
-            class="shrink-0 rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
-            download
-          >
-            PNG
-          </a>
+          <div v-if="variant.status === 'completed'" class="flex shrink-0 items-center gap-2">
+            <NuxtLink
+              :to="`/editor?variantId=${variant.id}`"
+              class="rounded-lg border border-cyan-800 bg-cyan-950/60 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:border-cyan-500 hover:text-white"
+            >
+              Edit
+            </NuxtLink>
+            <a
+              :href="getDownloadUrl(variant.id)"
+              class="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
+              download
+            >
+              PNG
+            </a>
+          </div>
         </div>
       </div>
     </div>

@@ -1,20 +1,5 @@
 <template>
-  <main class="min-h-screen bg-slate-950 text-slate-100">
-    <section class="mx-auto w-full max-w-6xl px-6 py-10 sm:py-16">
-      <nav class="mb-10 flex items-center justify-between gap-4">
-        <div>
-          <NuxtLink to="/" class="text-sm font-semibold uppercase tracking-[0.35em] text-cyan-300">Sprite Forge</NuxtLink>
-          <h1 class="mt-2 text-3xl font-black tracking-tight">Job Details</h1>
-        </div>
-        <div class="flex items-center gap-3">
-          <NuxtLink to="/jobs" class="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
-            History
-          </NuxtLink>
-          <NuxtLink to="/" class="rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-300 transition hover:border-slate-500 hover:text-slate-100">
-            Workspace
-          </NuxtLink>
-        </div>
-      </nav>
+  <AppShell title="Job Details">
 
       <div v-if="pending" class="text-sm text-slate-500">Loading job...</div>
       <div v-else-if="error || !job" class="rounded-xl border border-red-800 bg-red-950/60 p-4 text-sm text-red-200">
@@ -87,8 +72,7 @@
           :job-id="job.id"
         />
       </div>
-    </section>
-  </main>
+  </AppShell>
 </template>
 
 <script setup lang="ts">

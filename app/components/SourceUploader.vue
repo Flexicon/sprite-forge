@@ -19,6 +19,10 @@ const emit = defineEmits<{
   uploaded: [upload: UploadRecord]
 }>()
 
+defineProps<{
+  compact?: boolean
+}>()
+
 const fileInputId = 'source-upload-file'
 const previewUrl = ref<string | null>(null)
 const upload = ref<UploadRecord | null>(null)
@@ -119,7 +123,10 @@ onBeforeUnmount(clearPreviewUrl)
       @change="onFileChange"
     >
 
-    <div class="mt-5 grid gap-5 md:grid-cols-[220px_1fr]">
+    <div
+      class="mt-5 grid gap-5"
+      :class="compact ? '' : 'md:grid-cols-[220px_1fr]'"
+    >
       <div class="flex min-h-52 items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-900 p-4">
         <img
           v-if="previewUrl"
