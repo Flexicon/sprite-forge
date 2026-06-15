@@ -99,7 +99,7 @@ Add a dedicated `/editor` page and make it easy to reach from the existing app.
 
 ## Phase 2 - Canvas Editing MVP
 
-Status: next
+Status: completed
 
 ### Goal
 
