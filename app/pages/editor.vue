@@ -1,7 +1,7 @@
 <template>
   <AppShell title="Sprite Editor">
     <div class="space-y-6">
-      <section class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-cyan-950/20">
+      <section v-if="!imageUrl" class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6 shadow-2xl shadow-cyan-950/20">
         <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 class="text-xl font-bold text-slate-100">Open a sprite</h2>
@@ -387,20 +387,8 @@ async function renderDecodedImage(image: HTMLImageElement, token: number) {
   editCanvas.value = canvases.backingCanvas
   naturalWidth.value = canvases.backingCanvas.width
   naturalHeight.value = canvases.backingCanvas.height
-  zoomScale.value = getInitialZoomScale(canvases.backingCanvas.width, canvases.backingCanvas.height)
+  zoomScale.value = 16
   canvasReady.value = true
-}
-
-function getInitialZoomScale(width: number, height: number) {
-  const longestSide = Math.max(width, height, 1)
-  const matchedPreset = [
-    { maxSide: 16, scale: 32 },
-    { maxSide: 32, scale: 24 },
-    { maxSide: 64, scale: 16 },
-    { maxSide: 96, scale: 8 },
-  ].find(preset => longestSide <= preset.maxSide)
-
-  return matchedPreset?.scale ?? 4
 }
 
 function createCanvasPair(image: HTMLImageElement): CanvasPair | null {
