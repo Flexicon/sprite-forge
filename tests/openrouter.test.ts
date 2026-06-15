@@ -5,7 +5,7 @@ import { generateImage } from '../server/services/openrouter'
 const requestParams = {
   model: 'test/image-model',
   apiKey: 'test-key',
-  siteUrl: 'http://localhost:4179',
+  siteUrl: 'http://localhost:3674',
   appName: 'Sprite Forge Test',
   prompt: 'Make a sprite.',
   base64ImageDataUrl: 'data:image/png;base64,c291cmNl',
@@ -53,7 +53,7 @@ describe('OpenRouter image generation adapter', () => {
     ])
     expect((request as RequestInit).headers).toMatchObject({
       Authorization: 'Bearer test-key',
-      'HTTP-Referer': 'http://localhost:4179',
+      'HTTP-Referer': 'http://localhost:3674',
       'X-Title': 'Sprite Forge Test',
     })
   })

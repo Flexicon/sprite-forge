@@ -16,7 +16,7 @@ cp .env.example .env
 pnpm dev
 ```
 
-Open `http://localhost:4179` after the dev server starts.
+Open `http://localhost:3674` after the dev server starts.
 
 ## Environment
 
@@ -37,7 +37,7 @@ OPENROUTER_DEFAULT_MODEL=google/gemini-2.5-flash-image
 Optional OpenRouter metadata:
 
 ```env
-OPENROUTER_SITE_URL=http://localhost:4179
+OPENROUTER_SITE_URL=http://localhost:3674
 OPENROUTER_APP_NAME=Sprite Forge
 ```
 

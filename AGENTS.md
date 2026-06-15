@@ -63,7 +63,7 @@ OPENROUTER_DEFAULT_MODEL=google/gemini-2.5-flash-image
 Optional:
 
 ```env
-OPENROUTER_SITE_URL=http://localhost:4179
+OPENROUTER_SITE_URL=http://localhost:3674
 OPENROUTER_APP_NAME=Sprite Forge
 ```
 

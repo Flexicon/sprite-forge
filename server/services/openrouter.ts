@@ -46,7 +46,7 @@ export function getOpenRouterConfig(): OpenRouterConfig {
   return {
     apiKey,
     model: config.openrouterDefaultModel as string,
-    siteUrl: (config.openrouterSiteUrl as string) || 'http://localhost:4179',
+    siteUrl: (config.openrouterSiteUrl as string) || 'http://localhost:3674',
     appName: (config.openrouterAppName as string) || 'Sprite Forge',
   }
 }
@@ -189,4 +189,3 @@ export async function generateImage(params: {
 
   return { imageDataUrl, responseJson }
 }
-

@@ -3,7 +3,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   devServer: {
     host: '0.0.0.0',
-    port: 4179,
+    port: 3674, // FORG on a phone keypad
   },
   modules: ['@nuxt/eslint', '@nuxtjs/tailwindcss'],
   css: ['~/assets/css/main.css'],
@@ -12,7 +12,7 @@ export default defineNuxtConfig({
     databaseUrl: process.env.DATABASE_URL || 'file:./data/sprite-forge.sqlite',
     storageDir: process.env.STORAGE_DIR || './data/storage',
     openrouterDefaultModel: process.env.OPENROUTER_DEFAULT_MODEL || 'google/gemini-2.5-flash-image',
-    openrouterSiteUrl: process.env.OPENROUTER_SITE_URL || 'http://localhost:4179',
+    openrouterSiteUrl: process.env.OPENROUTER_SITE_URL || 'http://localhost:3674',
     openrouterAppName: process.env.OPENROUTER_APP_NAME || 'Sprite Forge',
     public: {
       appName: 'Sprite Forge'
