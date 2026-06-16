@@ -19,89 +19,159 @@
       </section>
 
       <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 class="text-xl font-bold text-slate-100">Canvas editor</h2>
-              <p class="mt-1 text-sm text-slate-500">{{ sourceDescription }}</p>
-            </div>
-            <div v-if="canvasReady" class="flex flex-wrap gap-2">
-              <button
-                type="button"
-                :disabled="isSavingEdit"
-                class="rounded-full bg-cyan-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
-                @click="saveEditedSprite"
-              >
-                {{ isSavingEdit ? 'Saving...' : 'Save copy' }}
-              </button>
-              <button
-                type="button"
-                class="rounded-full border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
-                @click="downloadEditedPng"
-              >
-                Download edited PNG
-              </button>
-            </div>
-          </div>
-
-          <div class="mt-6 flex min-h-[24rem] items-center justify-center overflow-auto rounded-2xl border border-slate-800 bg-slate-950 p-4">
-            <div v-if="imageUrl" class="max-w-full">
-              <div class="relative inline-block rounded-lg border border-slate-700" :style="canvasFrameStyle">
-                <canvas
-                  ref="displayCanvas"
-                  class="relative z-10 block rounded-lg bg-transparent [image-rendering:pixelated]"
-                  :class="activeTool === 'eyedropper' ? 'cursor-crosshair' : 'cursor-pencil'"
-                  :style="canvasStyle"
-                  aria-label="Editable sprite canvas"
-                  @contextmenu.prevent
-                  @pointerdown="onPointerDown"
-                  @pointermove="onPointerMove"
-                  @pointerup="onPointerUp"
-                  @pointercancel="onPointerUp"
-                  @pointerleave="onPointerUp"
-                />
-                <div v-if="showGrid" class="pointer-events-none absolute inset-0 z-20 rounded-lg" :style="gridStyle" />
+        <div class="space-y-6">
+          <div ref="canvasEditorSection" class="rounded-3xl border border-slate-800 bg-slate-900/80 p-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 class="text-xl font-bold text-slate-100">Canvas editor</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ sourceDescription }}</p>
               </div>
-              <p v-if="canvasReady" class="mt-3 text-center text-xs text-slate-500">
-                Editing {{ imageDimensions }} at {{ previewScale }}x zoom.
-              </p>
+              <div v-if="canvasReady" class="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  :disabled="isSavingEdit"
+                  class="rounded-full bg-cyan-300 px-4 py-2 text-sm font-bold text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                  @click="saveEditedSprite"
+                >
+                  {{ isSavingEdit ? 'Saving...' : 'Save copy' }}
+                </button>
+                <button
+                  type="button"
+                  class="rounded-full border border-slate-700 bg-slate-950 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
+                  @click="downloadEditedPng"
+                >
+                  Download edited PNG
+                </button>
+              </div>
             </div>
-            <div v-else class="max-w-sm text-center text-sm text-slate-500">
-              <p class="font-semibold text-slate-300">No sprite selected yet.</p>
-              <p class="mt-2">Use an `Edit` link from a completed variant, browse job history, or upload an image below.</p>
+
+            <div class="mt-6 flex min-h-[24rem] items-center justify-center overflow-auto rounded-2xl border border-slate-800 bg-slate-950 p-4">
+              <div v-if="imageUrl" class="max-w-full">
+                <div class="relative inline-block rounded-lg border border-slate-700" :style="canvasFrameStyle">
+                  <canvas
+                    ref="displayCanvas"
+                    class="relative z-10 block rounded-lg bg-transparent [image-rendering:pixelated]"
+                    :class="activeTool === 'eyedropper' ? 'cursor-crosshair' : 'cursor-pencil'"
+                    :style="canvasStyle"
+                    aria-label="Editable sprite canvas"
+                    @contextmenu.prevent
+                    @pointerdown="onPointerDown"
+                    @pointermove="onPointerMove"
+                    @pointerup="onPointerUp"
+                    @pointercancel="onPointerUp"
+                    @pointerleave="onPointerUp"
+                  />
+                  <div v-if="showGrid" class="pointer-events-none absolute inset-0 z-20 rounded-lg" :style="gridStyle" />
+                </div>
+                <p v-if="canvasReady" class="mt-3 text-center text-xs text-slate-500">
+                  Editing {{ imageDimensions }} at {{ previewScale }}x zoom.
+                </p>
+              </div>
+              <div v-else class="max-w-sm text-center text-sm text-slate-500">
+                <p class="font-semibold text-slate-300">No sprite selected yet.</p>
+                <p class="mt-2">Use an `Edit` link from a completed variant, browse job history, or upload an image below.</p>
+              </div>
             </div>
+
+            <div v-if="imageError" class="mt-4 rounded-xl border border-red-800 bg-red-950/60 p-3 text-sm text-red-200">
+              {{ imageError }}
+            </div>
+            <div v-if="editorMessage" class="mt-4 rounded-xl border border-cyan-900 bg-cyan-950/40 p-3 text-sm text-cyan-100">
+              {{ editorMessage }}
+              <span v-if="savedEditId">
+                <NuxtLink :to="`/editor?editId=${savedEditId}`" class="ml-2 font-bold text-cyan-200 underline decoration-cyan-500/60 underline-offset-4">Open saved edit</NuxtLink>
+                <a :href="`/api/sprite-edits/${savedEditId}/download.png`" class="ml-2 font-bold text-cyan-200 underline decoration-cyan-500/60 underline-offset-4">Download saved PNG</a>
+              </span>
+            </div>
+
+            <dl v-if="imageUrl" class="mt-4 grid gap-3 rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-300 sm:grid-cols-3">
+              <div>
+                <dt class="text-xs uppercase tracking-widest text-slate-500">Source</dt>
+                <dd class="mt-1 font-medium text-slate-100">{{ sourceTypeLabel }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs uppercase tracking-widest text-slate-500">ID</dt>
+                <dd class="mt-1 break-all font-medium text-slate-100">{{ sourceId }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs uppercase tracking-widest text-slate-500">Dimensions</dt>
+                <dd class="mt-1 font-medium text-slate-100">{{ imageDimensions }}</dd>
+              </div>
+            </dl>
           </div>
 
-          <div v-if="imageError" class="mt-4 rounded-xl border border-red-800 bg-red-950/60 p-3 text-sm text-red-200">
-            {{ imageError }}
-          </div>
-          <div v-if="editorMessage" class="mt-4 rounded-xl border border-cyan-900 bg-cyan-950/40 p-3 text-sm text-cyan-100">
-            {{ editorMessage }}
-            <span v-if="savedEditId">
-              <NuxtLink :to="`/editor?editId=${savedEditId}`" class="ml-2 font-bold text-cyan-200 underline decoration-cyan-500/60 underline-offset-4">Open saved edit</NuxtLink>
-              <a :href="`/api/sprite-edits/${savedEditId}/download.png`" class="ml-2 font-bold text-cyan-200 underline decoration-cyan-500/60 underline-offset-4">Download saved PNG</a>
-            </span>
-          </div>
+          <SourceUploader compact hide-details @uploaded="onUpload" />
 
-          <dl v-if="imageUrl" class="mt-4 grid gap-3 rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-300 sm:grid-cols-3">
-            <div>
-              <dt class="text-xs uppercase tracking-widest text-slate-500">Source</dt>
-              <dd class="mt-1 font-medium text-slate-100">{{ sourceTypeLabel }}</dd>
+          <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-bold text-slate-100">Recent saved edits</h2>
+                <p class="mt-1 text-xs text-slate-500">Open a saved copy for more touchups or download it as PNG.</p>
+              </div>
+              <button
+                type="button"
+                class="rounded-full border border-slate-700 bg-slate-950 px-3 py-1.5 text-xs font-semibold text-slate-300 transition hover:border-slate-500 hover:text-white"
+                @click="refreshRecentEdits"
+              >
+                Refresh
+              </button>
             </div>
-            <div>
-              <dt class="text-xs uppercase tracking-widest text-slate-500">ID</dt>
-              <dd class="mt-1 break-all font-medium text-slate-100">{{ sourceId }}</dd>
+
+            <div v-if="editsPending" class="mt-4 text-sm text-slate-500">Loading saved edits...</div>
+            <div v-else-if="recentEdits.length === 0" class="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-500">
+              Saved edited sprites will appear here.
             </div>
-            <div>
-              <dt class="text-xs uppercase tracking-widest text-slate-500">Dimensions</dt>
-              <dd class="mt-1 font-medium text-slate-100">{{ imageDimensions }}</dd>
+            <div v-else class="mt-4 grid gap-3 md:grid-cols-2">
+              <article
+                v-for="edit in recentEdits"
+                :key="edit.id"
+                class="rounded-xl border border-slate-800 bg-slate-950 p-3"
+              >
+                <NuxtLink
+                  :to="`/editor?editId=${edit.id}`"
+                  class="grid h-28 place-items-center rounded-lg border border-slate-800 bg-slate-900 p-2"
+                  :title="`Open saved edit ${edit.id}`"
+                >
+                  <img
+                    :src="getEditImageUrl(edit.id)"
+                    :alt="`Saved edit ${edit.id}`"
+                    class="max-h-full max-w-full object-contain [image-rendering:pixelated]"
+                  >
+                </NuxtLink>
+                <div class="mt-3 min-w-0">
+                  <p class="truncate text-sm font-semibold text-slate-100">{{ edit.width }}x{{ edit.height }} saved edit</p>
+                  <p class="mt-1 truncate text-xs text-slate-500">{{ getEditSourceLabel(edit) }}</p>
+                  <p class="mt-1 text-xs text-slate-600">{{ formatDate(edit.createdAt) }}</p>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <NuxtLink
+                      :to="`/editor?editId=${edit.id}`"
+                      class="rounded-lg border border-cyan-800 bg-cyan-950/60 px-3 py-1.5 text-xs font-semibold text-cyan-100 transition hover:border-cyan-500 hover:text-white"
+                    >
+                      Open
+                    </NuxtLink>
+                    <a
+                      :href="getEditDownloadUrl(edit.id)"
+                      class="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-slate-500 hover:text-white"
+                      download
+                    >
+                      Download
+                    </a>
+                    <button
+                      type="button"
+                      :disabled="isDeletingEdit(edit.id)"
+                      class="rounded-lg border border-red-800 bg-red-950/50 px-3 py-1.5 text-xs font-semibold text-red-200 transition hover:border-red-600 hover:bg-red-950 disabled:cursor-not-allowed disabled:opacity-60"
+                      @click="deleteSavedEdit(edit)"
+                    >
+                      {{ isDeletingEdit(edit.id) ? 'Deleting...' : 'Delete' }}
+                    </button>
+                  </div>
+                </div>
+              </article>
             </div>
-          </dl>
+          </section>
         </div>
 
         <div class="space-y-6">
-          <SourceUploader compact hide-details @uploaded="onUpload" />
-
           <section class="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
             <h2 class="text-lg font-bold text-slate-100">Tools</h2>
             <div v-if="canvasReady" class="mt-3 rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-slate-300">
@@ -202,7 +272,7 @@
 </template>
 
 <script setup lang="ts">
-import type { SpriteEdit, UploadRecord } from '~/types'
+import { formatDate, type SpriteEdit, type UploadRecord } from '~/types'
 
 type EditorTool = 'pencil' | 'eraser' | 'eyedropper'
 type CanvasPoint = { x: number, y: number }
@@ -218,6 +288,7 @@ type SaveSource = { sourceType: 'variant' | 'upload' | 'edit', sourceId: string 
 
 const route = useRoute()
 const router = useRouter()
+const canvasEditorSection = ref<HTMLElement | null>(null)
 const displayCanvas = ref<HTMLCanvasElement | null>(null)
 const editCanvas = shallowRef<HTMLCanvasElement | null>(null)
 const imageError = ref('')
@@ -227,6 +298,7 @@ const naturalHeight = ref<number | null>(null)
 const canvasReady = ref(false)
 const isDrawing = ref(false)
 const isSavingEdit = ref(false)
+const deletingEditIds = ref<string[]>([])
 const savedEditId = ref('')
 const selectedColor = ref('#38bdf8')
 const activeTool = ref<EditorTool>('pencil')
@@ -244,6 +316,9 @@ const tools: { id: EditorTool, label: string }[] = [
 const brushSizes = [1, 2, 4] as const
 const zoomScales = [4, 8, 12, 16, 24, 32] as const
 const maxHistoryEntries = 40
+const { data: editsData, pending: editsPending, refresh: refreshEdits } = useFetch<{ edits: SpriteEdit[] }>('/api/sprite-edits', {
+  query: { limit: 6 },
+})
 const historyShortcutActions: Record<string, () => void> = {
   z: undoEdit,
   'shift+z': redoEdit,
@@ -320,6 +395,7 @@ const gridStyle = computed(() => {
 const activeToolLabel = computed(() => tools.find(tool => tool.id === activeTool.value)?.label || activeTool.value)
 const canUndo = computed(() => undoStack.value.length > 0)
 const canRedo = computed(() => redoStack.value.length > 0)
+const recentEdits = computed(() => editsData.value?.edits ?? [])
 
 let loadToken = 0
 
@@ -389,6 +465,12 @@ async function renderDecodedImage(image: HTMLImageElement, token: number) {
   naturalHeight.value = canvases.backingCanvas.height
   zoomScale.value = 16
   canvasReady.value = true
+  await scrollCanvasIntoView()
+}
+
+async function scrollCanvasIntoView() {
+  await nextTick()
+  canvasEditorSection.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function createCanvasPair(image: HTMLImageElement): CanvasPair | null {
@@ -477,6 +559,92 @@ function redoEdit() {
   undoStack.value = [...undoStack.value, current].slice(-maxHistoryEntries)
   restoreSnapshot(snapshot)
   editorMessage.value = 'Redid the last edit.'
+}
+
+function getEditImageUrl(editId: string) {
+  return `/api/sprite-edits/${editId}/image.png`
+}
+
+function getEditDownloadUrl(editId: string) {
+  return `/api/sprite-edits/${editId}/download.png`
+}
+
+function getEditSourceLabel(edit: SpriteEdit) {
+  const labels: Record<SpriteEdit['sourceType'], string> = {
+    variant: 'Generated variant source',
+    upload: 'Direct upload source',
+    edit: 'Saved edit source',
+  }
+
+  return labels[edit.sourceType]
+}
+
+function refreshRecentEdits() {
+  void refreshEdits()
+}
+
+function isDeletingEdit(id: string) {
+  return deletingEditIds.value.includes(id)
+}
+
+function deleteSavedEdit(edit: SpriteEdit) {
+  if (!confirmSavedEditDelete(edit.id)) return
+
+  void runDeleteSavedEdit(edit.id)
+}
+
+function confirmSavedEditDelete(id: string) {
+  return !isDeletingEdit(id) && window.confirm('Delete this saved edit and its stored PNG file? This cannot be undone.')
+}
+
+async function runDeleteSavedEdit(id: string) {
+  startDeletingEdit(id)
+  const deleted = await requestDeleteSavedEdit(id)
+  stopDeletingEdit(id)
+
+  if (deleted) {
+    await handleDeletedSavedEdit(id)
+  }
+}
+
+function startDeletingEdit(id: string) {
+  deletingEditIds.value = [...deletingEditIds.value, id]
+  imageError.value = ''
+}
+
+function stopDeletingEdit(id: string) {
+  deletingEditIds.value = deletingEditIds.value.filter(editId => editId !== id)
+}
+
+async function requestDeleteSavedEdit(id: string) {
+  return $fetch(`/api/sprite-edits/${id}`, { method: 'DELETE' })
+    .then(() => true)
+    .catch((error) => {
+      imageError.value = getDeleteEditErrorMessage(error)
+      return false
+    })
+}
+
+async function handleDeletedSavedEdit(id: string) {
+  editorMessage.value = 'Deleted the saved edit.'
+
+  if (savedEditId.value === id) {
+    savedEditId.value = ''
+  }
+
+  if (editId.value === id) {
+    await router.replace('/editor')
+  }
+
+  await refreshEdits()
+}
+
+function getDeleteEditErrorMessage(error: unknown) {
+  const statusMessage = (error as { statusMessage?: unknown } | null)?.statusMessage
+
+  return typeof statusMessage === 'string'
+    ? statusMessage
+    : error instanceof Error ? error.message : 'Failed to delete the saved edit.'
 }
 
 function getCanvasPoint(event: PointerEvent) {
@@ -712,6 +880,7 @@ async function saveEditedSprite() {
 
     savedEditId.value = response.edit.id
     editorMessage.value = `Saved edited sprite (${response.edit.width}x${response.edit.height}).`
+    await refreshEdits()
   }
   catch (error) {
     imageError.value = getSaveErrorMessage(error)

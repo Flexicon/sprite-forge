@@ -211,7 +211,7 @@ GET  /api/sprite-edits/:id/download.png
 
 ## Phase 5 - Saved Edits Library
 
-Status: pending
+Status: completed
 
 ### Goal
 
