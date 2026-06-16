@@ -51,6 +51,14 @@ function assertSafeRelativePath(path: string) {
   return normalized
 }
 
+function assertSafeStorageId(id: string) {
+  if (!id || id.includes('/') || id.includes('\\') || id.includes('\0') || id === '.' || id === '..') {
+    throw new Error('Storage ID contains an unsafe segment.')
+  }
+
+  return id
+}
+
 function resolveStoragePath(path: string) {
   const root = getStorageRoot()
   const relativePath = assertSafeRelativePath(path)
@@ -122,7 +130,7 @@ function jobStoragePath(jobId: string, ...segments: string[]) {
 }
 
 function editStoragePath(editId: string) {
-  return assertSafeRelativePath(`edits/${editId}.png`)
+  return assertSafeRelativePath(`edits/${assertSafeStorageId(editId)}.png`)
 }
 
 async function checkStorageHealth() {

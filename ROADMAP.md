@@ -232,7 +232,7 @@ Make saved edits discoverable and reusable.
 
 ## Phase 6 - Polish And Tests
 
-Status: pending
+Status: completed
 
 ### Goal
 

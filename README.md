@@ -43,6 +43,14 @@ OPENROUTER_APP_NAME=Sprite Forge
 
 The app should report a missing `OPENROUTER_API_KEY` when generation is attempted, not during normal browsing.
 
+## Sprite Editor
+
+Open `/editor` from the app navigation to touch up sprites locally in the browser. You can start from a completed generated variant by clicking its `Edit` action, open a saved edit from the recent edits library, or upload a PNG directly on the editor page.
+
+The editor keeps the working canvas at the source image dimensions and provides pencil, eraser, eyedropper, brush-size, zoom, grid, checkerboard, undo, and redo controls. `Download PNG` exports the current canvas immediately without saving metadata.
+
+Use `Save edited copy` to persist the edited PNG under local storage as a new artifact. Saving never overwrites the original upload, generated variant, or earlier edit. Saved edits appear in the recent edits list on `/editor`, can be reopened for more touchup work, and can be downloaded from the UI.
+
 ## Scripts
 
 ```bash
@@ -51,9 +59,9 @@ pnpm build
 pnpm start
 pnpm lint
 pnpm typecheck
+pnpm test
 ```
 
-Database scripts will be added with the Drizzle setup phase.
 Database scripts:
 
 ```bash
@@ -77,4 +85,4 @@ The `GET /api/settings` endpoint includes database and storage health checks. Th
 
 ## Current Status
 
-Phase 2 is complete: Nuxt bootstrap, SQLite/Drizzle persistence, and a safe local storage service with settings diagnostics.
+The MVP generation workflow and built-in pixel editor are complete through the editor hardening phase. The app supports local sprite generation, persisted uploads/jobs/variants, PNG/ZIP exports, saved editor copies, and basic tests for core server utilities.

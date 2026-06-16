@@ -12,6 +12,7 @@ describe('storage service path handling', () => {
   it('builds safe upload and job storage paths', () => {
     expect(storage.uploadPath('upload-1')).toBe('uploads/upload-1.png')
     expect(storage.jobPath('job-1', 'variants', 'variant-1.png')).toBe('jobs/job-1/variants/variant-1.png')
+    expect(storage.editPath('edit-1')).toBe('edits/edit-1.png')
   })
 
   it('rejects unsafe storage paths', () => {
@@ -19,6 +20,12 @@ describe('storage service path handling', () => {
     expect(() => storage.resolvePath('/tmp/outside.png')).toThrow('must not be absolute')
     expect(() => storage.resolvePath('jobs//bad.png')).toThrow('unsafe segment')
     expect(() => storage.resolvePath('')).toThrow('non-empty relative path')
+  })
+
+  it('rejects unsafe edit storage identifiers', () => {
+    expect(() => storage.editPath('../outside')).toThrow('unsafe segment')
+    expect(() => storage.editPath('/tmp/outside')).toThrow('unsafe segment')
+    expect(() => storage.editPath('nested/edit')).toThrow('unsafe segment')
   })
 
   it('resolves safe paths inside the configured storage directory', () => {

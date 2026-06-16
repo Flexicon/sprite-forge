@@ -1,7 +1,7 @@
 import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 
-import { processGeneratedImage, isPixelArtPreset } from '../server/services/image-processing'
+import { normalizeSpriteEdit, processGeneratedImage, isPixelArtPreset } from '../server/services/image-processing'
 import { bufferToPngDataUrl } from '../server/utils/data-url'
 
 async function createCoinLikeFixtureDataUrl() {
@@ -96,5 +96,51 @@ describe('image processing', () => {
     const final = await readRawPng(result.finalBuffer)
 
     expect(pixel(final.data, 5, 0, 0)).toEqual([255, 255, 255, 255])
+  })
+
+  it('normalizes edited PNG uploads with an alpha channel and dimensions', async () => {
+    const source = await sharp({
+      create: {
+        width: 3,
+        height: 2,
+        channels: 3,
+        background: { r: 30, g: 120, b: 210 },
+      },
+    }).png().toBuffer()
+
+    const edit = await normalizeSpriteEdit({ data: source })
+    const raw = await readRawPng(edit.buffer)
+
+    expect(edit.width).toBe(3)
+    expect(edit.height).toBe(2)
+    expect(raw.info.channels).toBe(4)
+    expect(pixel(raw.data, 3, 0, 0)).toEqual([30, 120, 210, 255])
+  })
+
+  it('rejects non-PNG edited sprite uploads', async () => {
+    const jpeg = await sharp({
+      create: {
+        width: 2,
+        height: 2,
+        channels: 3,
+        background: { r: 255, g: 0, b: 0 },
+      },
+    }).jpeg().toBuffer()
+
+    await expect(normalizeSpriteEdit({ data: jpeg })).rejects.toThrow('Edited sprite must be a PNG image.')
+  })
+
+  it('rejects edited sprite uploads that exceed byte or dimension limits', async () => {
+    const png = await sharp({
+      create: {
+        width: 3,
+        height: 3,
+        channels: 4,
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      },
+    }).png().toBuffer()
+
+    await expect(normalizeSpriteEdit({ data: png, maxBytes: 1 })).rejects.toThrow('Edited PNG is too large.')
+    await expect(normalizeSpriteEdit({ data: png, maxDimension: 2 })).rejects.toThrow('Edited sprite dimensions must be 2x2 or smaller.')
   })
 })
