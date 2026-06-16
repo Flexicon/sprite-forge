@@ -1,6 +1,14 @@
 export default defineNuxtConfig({
   compatibilityDate: '2026-06-14',
   devtools: { enabled: true },
+  app: {
+    head: {
+      title: 'Sprite Forge',
+      link: [
+        { rel: 'icon', href: 'https://fav.farm/%E2%9A%92%EF%B8%8F', type: 'image/svg+xml' }
+      ]
+    }
+  },
   devServer: {
     host: '0.0.0.0',
     port: 3674, // FORG on a phone keypad
