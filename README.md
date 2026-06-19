@@ -49,7 +49,7 @@ Open `/editor` from the app navigation to touch up sprites locally in the browse
 
 The editor keeps the working canvas at the source image dimensions and provides pencil, eraser, eyedropper, brush-size, zoom, grid, checkerboard, undo, and redo controls. `Download PNG` exports the current canvas immediately without saving metadata.
 
-Use `Save edited copy` to persist the edited PNG under local storage as a new artifact. Saving never overwrites the original upload, generated variant, or earlier edit. Saved edits appear in the recent edits list on `/editor`, can be reopened for more touchup work, and can be downloaded from the UI.
+Use `Save edited copy` to persist the edited PNG on the local filesystem as a new artifact. Saving never overwrites the original upload, generated variant, or earlier edit. Saved edits appear in the recent edits list on `/editor`, can be reopened for more touchup work, and can be downloaded from the UI.
 
 ## Scripts
 
